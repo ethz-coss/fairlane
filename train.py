@@ -28,7 +28,7 @@ import csv
 # use_gui = False
 # mode = 'gui' if (use_gui and display) else 'none'
 
-mode = False
+mode = True
 USE_CUDA = False  # torch.cuda.is_available()
 
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):

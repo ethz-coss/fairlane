@@ -128,22 +128,22 @@ def computeEdges():
     return combine_path
 
 def createNPCRouteFiles(networkFileName):
-    routeFileName = "sumo_configs/npc.rou.generated.xml"   
+    routeFileName = "sumo_configs/heuristic.rou.generated.xml"   
 
     root = ET.Element('vehicles')
-    numberOfRoutes = 100
+    numberOfRoutes = 50
     releventEdgeId = []
     allEdgeIds = traci.edge.getIDList()
 
     for i in range (numberOfRoutes): #number of routes to generate
         child = ET.SubElement(root, 'vehicle')
         #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
-        npc_id = f"npc_" + str(i)
+        npc_id = f"heuristic_" + str(i)
         assignPriority = random.uniform(0, 1)
         if assignPriority > 0.5:
-            priorityType = "passenger-priority"
+            priorityType = "heuristic-priority"
         else:
-            priorityType = "passenger-default"
+            priorityType = "heuristic-default"
 
         
         edges = computeEdges()
@@ -159,6 +159,32 @@ def createNPCRouteFiles(networkFileName):
     ET.indent(tree, space="\t", level=0)
     tree.write(routeFileName)
 
+
+def createCAVRouteFiles(networkFileName):
+    routeFileName = "sumo_configs/cav.rou.generated.xml"   
+
+    root = ET.Element('vehicles')
+    numberOfRoutes = 40
+    releventEdgeId = []
+    allEdgeIds = traci.edge.getIDList()
+
+    for i in range (numberOfRoutes): #number of routes to generate
+        child = ET.SubElement(root, 'vehicle')
+        #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
+        npc_id = f"cav_" + str(i)       
+        priorityType = "cav-priority"        
+        edges = computeEdges()
+        child.set('id',str(npc_id))
+        child.set('type',str(priorityType))
+        child.set('depart',"0.0")
+        route = ET.SubElement(child, 'route')
+        route.set('edges',str(edges))
+
+
+    # print(tostring(top))
+    tree = ET.ElementTree(root)
+    ET.indent(tree, space="\t", level=0)
+    tree.write(routeFileName)
 
 def combinePath(path_list):
     combinePath = []
@@ -211,7 +237,8 @@ def init_simulator(seed,networkFileName,withGUI):
             releventEdgeId.append(edge)
 
     # testCode(networkFileName)
-    createNPCRouteFiles(networkFileName)
+    # createNPCRouteFiles(networkFileName)
+    # createCAVRouteFiles(networkFileName)
     # print("Rohit")
     # print(releventEdgeId)
     while stepCounter < episodeLength:

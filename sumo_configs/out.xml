@@ -1,43 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-12-18 09:39:21 by Eclipse SUMO GUI Version 1.18.0
+<!-- generated on 2023-12-18 16:29:44 by Eclipse SUMO GUI Version 1.18.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="sumo_configs/Grid1.net.xml"/>
-        <route-files value="sumo_configs/routes.rou.xml"/>
-        <additional-files value="sumo_configs/loopDetectors.add.xml"/>
+        <net-file value="C:\D\SUMO\PriorityLane\sumo_configs\Grid1.net.xml"/>
+        <route-files value="C:\D\SUMO\PriorityLane\sumo_configs\routes.rou.xml"/>
+        <additional-files value="C:\D\SUMO\PriorityLane\sumo_configs\loopDetectors.add.xml"/>
     </input>
-
-    <output>
-        <statistic-output value="output.xml"/>
-    </output>
-
-    <processing>
-        <time-to-teleport value="-1"/>
-        <waiting-time-memory value="25"/>
-        <default.carfollowmodel value="IDM"/>
-    </processing>
-
-    <report>
-        <no-warnings value="true"/>
-        <no-step-log value="true"/>
-    </report>
-
-    <random_number>
-        <seed value="42"/>
-    </random_number>
-
-    <gui_only>
-        <quit-on-end value="true"/>
-        <start value="true"/>
-    </gui_only>
 
 </configuration>
 -->
 
 <detector xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/det_e1_file.xsd">
-    <interval begin="0.00" end="79.00" id="myLoop1" nVehContrib="5" flow="227.85" occupancy="6.87" speed="6.70" harmonicMeanSpeed="4.61" length="5.00" nVehEntered="5"/>
-    <interval begin="0.00" end="79.00" id="myLoop2" nVehContrib="1" flow="45.57" occupancy="1.62" speed="3.92" harmonicMeanSpeed="3.92" length="5.00" nVehEntered="1"/>
-    <interval begin="0.00" end="79.00" id="myLoop3" nVehContrib="2" flow="91.14" occupancy="4.45" speed="3.09" harmonicMeanSpeed="2.85" length="5.00" nVehEntered="2"/>
+    <interval begin="0.00" end="2076.00" id="myLoop1" nVehContrib="42" flow="72.83" occupancy="3.30" speed="5.44" harmonicMeanSpeed="3.06" length="5.00" nVehEntered="42"/>
+    <interval begin="0.00" end="2076.00" id="myLoop2" nVehContrib="38" flow="65.90" occupancy="4.39" speed="3.20" harmonicMeanSpeed="2.16" length="5.00" nVehEntered="41"/>
+    <interval begin="0.00" end="2076.00" id="myLoop3" nVehContrib="111" flow="192.49" occupancy="7.98" speed="4.48" harmonicMeanSpeed="3.35" length="5.00" nVehEntered="112"/>
 </detector>
