@@ -1,0 +1,13 @@
+netconvert  --osm-files map.osm -o map.net.xml
+polyconvert --net-file map.net.xml --osm-files map.osm -o map.poly.xml
+python "C:\Program Files (x86)\Eclipse\Sumo\tools\randomTrips.py" -n Grid1.net.xml -r npc_routes.rou.xml  -o trips.xml -e 3600 -p 0.8
+sumo-gui sim.sumocfg
+
+
+netgenerate --rand -o SimpleRandom.net.xml --rand.iterations=100 --default.lanenumber=3 --default.lanewidth=3.2 -j "traffic_light"
+
+----Uniform Grid -----
+netgenerate -o Grid.net.xml -g --grid.x-number=5 --grid.y-number=3 --default.lanenumber=3 --default.lanewidth=3.2 -j "traffic_light"
+
+
+A2B2 B2B1 B1C1

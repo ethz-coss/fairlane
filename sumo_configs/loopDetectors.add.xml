@@ -1,0 +1,5 @@
+<additionals>
+  <inductionLoop id="myLoop1" lane="B1C1_0" pos="0" period="3600" file="out.xml"/>
+  <inductionLoop id="myLoop2" lane="B1C1_1" pos="0" period="3600" file="out.xml"/>
+  <inductionLoop id="myLoop3" lane="B1C1_2" pos="0" period="3600" file="out.xml"/>
+</additionals>
