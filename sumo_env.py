@@ -276,6 +276,12 @@ class SUMOEnv(Env):
 						break
 				if lane_index!='2':
 					self.traci.vehicle.setType(heuristic,"heuristic-priority")
+					bestLanes = self.traci.vehicle.getBestLanes(heuristic)
+					if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+						#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+						self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
+					else:
+						self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
 
 
 
@@ -610,6 +616,14 @@ class SUMOEnv(Env):
 			if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
 				if action == 0:
 					self.traci.vehicle.setType(agent_id,"rl-default")
+					
+					if self.edgeIdInternal(self.traci.vehicle.getLaneID(agent_id)) == False:
+						bestLanes = self.traci.vehicle.getBestLanes(agent_id)
+						if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+							#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+							self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
+						else:
+							self.traci.vehicle.changeLane(agent_id,1, self._laneChangeAttemptDuration)
 					# print("Priority Removed")
 				elif action == 1:
 					pass # do nothing
@@ -622,6 +636,13 @@ class SUMOEnv(Env):
 					pass # do nothing
 				else:
 					self.traci.vehicle.setType(agent_id,"rl-priority")
+					if self.edgeIdInternal(self.traci.vehicle.getLaneID(agent_id)) == False:
+						bestLanes = self.traci.vehicle.getBestLanes(agent_id)
+						if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+							#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+							self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
+						else:
+							self.traci.vehicle.changeLane(agent_id,1, self._laneChangeAttemptDuration)
 					# print("Priority Assigned")
 	
 	def initSimulator(self,withGUI,portnum):

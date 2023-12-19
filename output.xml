@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-12-19 15:25:00 by Eclipse SUMO GUI Version 1.18.0
+<!-- generated on 2023-12-19 15:49:48 by Eclipse SUMO GUI Version 1.18.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -13,35 +13,21 @@
     </output>
 
     <processing>
-        <default.carfollowmodel value="IDM"/>
+        <time-to-teleport value="-1"/>
+        <waiting-time-memory value="25"/>
+        <lanechange.duration value="3"/>
     </processing>
 
     <report>
-        <no-warnings value="true"/>
         <no-step-log value="true"/>
     </report>
-
-    <traci_server>
-        <remote-port value="51254"/>
-    </traci_server>
 
     <random_number>
         <seed value="42"/>
     </random_number>
 
     <gui_only>
-        <quit-on-end value="true"/>
         <start value="true"/>
     </gui_only>
 
 </configuration>
--->
-
-<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
-    <performance clockBegin="-1819468.30" clockEnd="-1819370.28" clockDuration="98.02" traciDuration="1.41" realTimeFactor="36.72" vehicleUpdatesPerSecond="6156.28" personUpdatesPerSecond="0.00" begin="0.00" end="3599.00" duration="3599.00"/>
-    <vehicles loaded="168" inserted="168" running="168" waiting="0"/>
-    <teleports total="55" jam="26" yield="29" wrongLane="0"/>
-    <safety collisions="0" emergencyStops="0" emergencyBraking="3"/>
-    <persons loaded="0" running="0" jammed="0"/>
-    <personTeleports total="0" abortWait="0" wrongDest="0"/>
-</statistics>
