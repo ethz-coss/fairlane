@@ -30,11 +30,17 @@ def editLaneVClassAllowedPermission(toNew, networkFileName="sumo_configs/Grid1.n
 
 def getSplitVehiclesList(allvehicles):
     rl_vehicleID = []
+    cav_vehicleID = []
+    heuristic_vehicleID = []
     npc_vehicleID = []
     for veh in allvehicles:
         x = veh.split("_",1)
         if x[0] =="RL":
             rl_vehicleID.append(veh)
-        else:
+        elif x[0] == "cav":
+            cav_vehicleID.append(veh)
+        elif x[0] == "heuristic":
+            heuristic_vehicleID.append(veh)
+        elif x[0] == "npc":
             npc_vehicleID.append(veh)
-    return npc_vehicleID,rl_vehicleID
+    return npc_vehicleID,rl_vehicleID,heuristic_vehicleID,cav_vehicleID

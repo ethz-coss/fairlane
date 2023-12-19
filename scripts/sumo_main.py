@@ -159,6 +159,94 @@ def createNPCRouteFiles(networkFileName):
     ET.indent(tree, space="\t", level=0)
     tree.write(routeFileName)
 
+def readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networkFileName):
+    routeFileName = "sumo_configs/long_routes.rou.xml"
+    newRouteFileName = "sumo_configs/all_routes.rou.xml"
+    routesList = []
+    tree = ET.parse(routeFileName)
+    root = tree.getroot()
+    
+    for route in root.iter('route'):
+        routesList.append(route.attrib['edges'])
+
+    
+    rl_agent_numer = 28
+    root = ET.Element('vehicles')
+    for i in range (rl_agent_numer): #number of routes to generate
+        child = ET.SubElement(root, 'vehicle')
+        #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
+        rl_id = f"RL_" + str(i)       
+        priorityType = "rl-priority"  
+        list_length =  len(routesList)
+        random_index = randrange(list_length)
+        edges = routesList[random_index]
+        child.set('id',str(rl_id))
+        child.set('type',str(priorityType))
+        child.set('depart',"0.0")
+        route = ET.SubElement(child, 'route')
+        route.set('edges',str(edges))
+        routesList.remove(edges)
+    
+    cav_agent_numer = 40
+    for i in range (cav_agent_numer): #number of routes to generate
+        child = ET.SubElement(root, 'vehicle')
+        #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
+        cav_id = f"cav_" + str(i)       
+        priorityType = "cav-priority"  
+        list_length =  len(routesList)
+        random_index = randrange(list_length)
+        edges = routesList[random_index]
+        child.set('id',str(cav_id))
+        child.set('type',str(priorityType))
+        child.set('depart',"0.0")
+        route = ET.SubElement(child, 'route')
+        route.set('edges',str(edges))
+        routesList.remove(edges)
+
+    heuristic_agent_numer = 50
+    for i in range (heuristic_agent_numer): #number of routes to generate
+        child = ET.SubElement(root, 'vehicle')
+        #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
+        heuristic_id = f"heuristic_" + str(i) 
+        assignPriority = random.uniform(0, 1)
+        if assignPriority > 0.5:
+            priorityType = "heuristic-priority"
+        else:
+            priorityType = "heuristic-default"  
+        list_length =  len(routesList)
+        random_index = randrange(list_length)
+        edges = routesList[random_index]
+        child.set('id',str(heuristic_id))
+        child.set('type',str(priorityType))
+        child.set('depart',"0.0")
+        route = ET.SubElement(child, 'route')
+        route.set('edges',str(edges))
+        routesList.remove(edges)
+    
+    npc_agent_numer = 50
+    for i in range (npc_agent_numer): #number of routes to generate
+        child = ET.SubElement(root, 'vehicle')
+        #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
+        npc_id = f"npc_" + str(i) 
+        assignPriority = random.uniform(0, 1)
+        if assignPriority > 0.5:
+            priorityType = "passenger-priority"
+        else:
+            priorityType = "passenger-default"  
+        list_length =  len(routesList)
+        random_index = randrange(list_length)
+        edges = routesList[random_index]
+        child.set('id',str(npc_id))
+        child.set('type',str(priorityType))
+        child.set('depart',"0.0")
+        route = ET.SubElement(child, 'route')
+        route.set('edges',str(edges))
+        routesList.remove(edges)
+
+    tree = ET.ElementTree(root)
+    ET.indent(tree, space="\t", level=0)
+    tree.write(newRouteFileName)
+
 
 def createCAVRouteFiles(networkFileName):
     routeFileName = "sumo_configs/cav.rou.generated.xml"   
@@ -236,6 +324,7 @@ def init_simulator(seed,networkFileName,withGUI):
         if edge.find("_") == -1:
             releventEdgeId.append(edge)
 
+    # readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networkFileName)
     # testCode(networkFileName)
     # createNPCRouteFiles(networkFileName)
     # createCAVRouteFiles(networkFileName)
@@ -244,10 +333,10 @@ def init_simulator(seed,networkFileName,withGUI):
     while stepCounter < episodeLength:
         traci.simulationStep(stepCounter)
         #### WARM UP PERIOD CODE HERE ####
-        if stepCounter > 10:
+        # if stepCounter > 10:
            
-            allVehicleList = traci.vehicle.getIDList()
-            npc_vehicleID,rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+            # allVehicleList = traci.vehicle.getIDList()
+            # npc_vehicleID,rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
             # print(rl_vehicleID)
             # for rl_veh in rl_vehicleID:
             #     if traci.vehicle.getRouteIndex(str(rl_veh)) == (len(traci.vehicle.getRoute(str(rl_veh))) - 1): #Check to see if the car is at the end of its route
@@ -260,9 +349,9 @@ def init_simulator(seed,networkFileName,withGUI):
         #### ACTION STEP CODE HERE ####
         if stepCounter%300 == 0 and stepCounter>=warmUpPeriod:
             print("Inside Action Step")
-            # allVehicleList = traci.vehicle.getIDList()
+            print(len(traci.vehicle.getIDList()))
             # npc_vehicleID,rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
-            print("Total npc: " + str(len(npc_vehicleID)) + "Total RL agent: " + str(len(rl_vehicleID)))
+            # print("Total npc: " + str(len(npc_vehicleID)) + "Total RL agent: " + str(len(rl_vehicleID)))
             # randomAssignmentOfPriority(npc_vehicleID,rl_vehicleID)
 
             # print(getState(net))

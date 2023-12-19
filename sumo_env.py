@@ -49,10 +49,12 @@ class SUMOEnv(Env):
 		self._scenario = "Train"
 		self._npc_vehicleID = 0
 		self._rl_vehicleID = 0
+		self._heuristic_vehicleID=0
+		self._cav_vehicleID=0
 		self.original_rl_vehicleID = []
 		self._routeDict = {}
 		self._timeLossOriginalDict = {}
-		self._net = sumolib.net.readNet(self._networkFileName)
+		self._net = sumolib.net.readNet(self._networkFileName,withInternal=True)
 		# set required vectorized gym env property
 		self.n = 28
 		self.lastActionDict = {}
@@ -64,6 +66,8 @@ class SUMOEnv(Env):
 		self._listOfVehicleIdsInConcern = {}
 		self._releventEdgeId = []
 		self._timeLossThreshold = 60
+		self._lane_clearing_distance_threshold = 30
+		self._laneChangeAttemptDuration = 5 #seconds
 
 		#test stats
 		self._currentTimeLoss_rl = 0
@@ -75,7 +79,7 @@ class SUMOEnv(Env):
 
 		self._allEdgeIds = self.traci.edge.getIDList()
 		for edge in self._allEdgeIds:
-			if edge.find("_") == -1:
+			if edge.find(":") == -1:
 				self._releventEdgeId.append(edge)
 
 		
@@ -173,7 +177,7 @@ class SUMOEnv(Env):
 	
 	def keepRLAgentLooping(self):
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
 		missingRLAgentFlag = False
 		# print(rl_vehicleID)
 		if len(self._rl_vehicleID) != 28: #this it solve: sometimes self.traci/sumo drops vehicle due to some reason. To maintain the same number of RL agent 
@@ -232,17 +236,59 @@ class SUMOEnv(Env):
 			self._timeLossOriginalDict[rl_agent] = self.traci.vehicle.getTimeLoss(rl_agent) # store the time loss when the agent is spawned. It will be used to compare for action step time loss for reward calculation
 			# self._travelTime[rl_agent] = 
 	
-	def setNPCRandomTogglePriority(self): #change this function to some heuristic
+	def setHeuristicAgentTogglePriority(self): #heuristic logic to change priority of all agent starting with heuristic in the name. 
+		#this is done to overcome the limitation of training 100's of RL agent. Can we just train 25% of the RL agent with heuristic logic and 
+		#still get similar or better training output? One novelty of the paper, probably?
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
-		for npc in self._npc_vehicleID:
-			assignPriority = random.uniform(0, 1)
-			if self.traci.vehicle.getTypeID(npc)=="passenger-priority": 
-				if assignPriority > 0.5:
-					self.traci.vehicle.setType(npc,"passenger-default")
-			elif self.traci.vehicle.getTypeID(npc)=="passenger-default": 
-				if assignPriority > 0.5:
-					self.traci.vehicle.setType(npc,"passenger-priority")
+		print("Total number of vehicles",len(allVehicleList))
+		self._npc_vehicleID,self._rl_vehicleID, self._heuristic_vehicleID,self._cav_vehicleID= utils.getSplitVehiclesList(allVehicleList)
+		# for npc in self._npc_vehicleID:
+		# 	assignPriority = random.uniform(0, 1)
+		# 	if self.traci.vehicle.getTypeID(npc)=="passenger-priority": 
+		# 		if assignPriority > 0.5:
+		# 			self.traci.vehicle.setType(npc,"passenger-default")
+		# 	elif self.traci.vehicle.getTypeID(npc)=="passenger-default": 
+		# 		if assignPriority > 0.5:
+		# 			self.traci.vehicle.setType(npc,"passenger-priority")
+		for heuristic in self._heuristic_vehicleID:
+			which_lane = self.traci.vehicle.getLaneID(heuristic)
+			if self.edgeIdInternal(which_lane)==False:
+				lane_index = which_lane.split("_")[1]
+				which_edge = which_lane.split("_")[0]
+				priority_lane = which_edge + str("_2") # find priority lane for that vehicle
+				vehicle_on_priority_lane = self.traci.lane.getLastStepVehicleIDs(priority_lane)
+				npc_vehicleID,rl_vehicleID, heuristic_vehicleID,cav_vehicleID= utils.getSplitVehiclesList(vehicle_on_priority_lane)
+				heuristic_lane_position = self.traci.vehicle.getLanePosition(heuristic)
+
+				for cav in cav_vehicleID:
+					cav_lane_position = self.traci.vehicle.getLanePosition(cav)
+					if heuristic_lane_position - cav_lane_position>= self._lane_clearing_distance_threshold:					
+						continue
+					else:
+						#change priority of heuristic agent as it is inside clearing distance
+						self.traci.vehicle.setType(heuristic,"heuristic-default")
+						bestLanes = self.traci.vehicle.getBestLanes(heuristic)
+						if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+							#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+							self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
+						else:
+							self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
+						break
+				if lane_index!='2':
+					self.traci.vehicle.setType(heuristic,"heuristic-priority")
+
+
+
+
+
+
+			# assignPriority = random.uniform(0, 1)
+			# if self.traci.vehicle.getTypeID(heuristic)=="heuristic-priority": 
+			# 	if assignPriority > 0.5:
+			# 		self.traci.vehicle.setType(heuristic,"heuristic-default")
+			# elif self.traci.vehicle.getTypeID(heuristic)=="heuristic-default": https://sumo.dlr.de/pydoc/traci._lane.html#LaneDomain-getLastStepVehicleIDs
+			# 	if assignPriority > 0.5:
+			# 		self.traci.vehicle.setType(heuristic,"heuristic-priority")
 
 	def reset(self,scenario):		
 		print("--------Inside RESET---------")
@@ -257,7 +303,7 @@ class SUMOEnv(Env):
 			# print(self.traci.vehicle.getTimeLoss("RL_9"))
 			if self._sumo_step == 10:
 				allVehicleList = self.traci.vehicle.getIDList()
-				self._npc_vehicleID,self.original_rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+				self._npc_vehicleID,self.original_rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID= utils.getSplitVehiclesList(allVehicleList)
 				
 				# self.initializeRLAgentStartValues()
 			# 	self.keepRLAgentLooping()				
@@ -282,6 +328,8 @@ class SUMOEnv(Env):
 	# get observation for a particular agent
 	def _get_obs(self, agent):
 		return self.getState(f'RL_{agent.id}')
+		# state = [0.1,0.3,0.5,0.6,0.8]
+		# return state
 
 	def computeCooperativeReward(self,rl_agent):
 		elapsed_simulation_time = self.traci.simulation.getTime()
@@ -348,7 +396,8 @@ class SUMOEnv(Env):
 			reward_cooperative = self.computeCooperativeReward(agent_id)
 			reward_overallNetwork = self.computeOverallNetworkReward(agent_id)
 			overall_reward = reward_cooperative + reward_overallNetwork
-			# print(overall_reward)			
+			# print(overall_reward)		
+			# overall_reward = 0	
 
 		return overall_reward
 		
@@ -362,11 +411,16 @@ class SUMOEnv(Env):
 	# get info used for benchmarking
 	def _get_info(self, agent):
 		return {}
+	def edgeIdInternal(self,edge_id):
+		if edge_id.find(":") == -1:
+			return False
+		else:
+			return True
 	
 	def collectObservation(self,lastTimeStepFlag):
 		#This function collects sum of time loss for all vehicles related to a in-concern RL agent. 
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID= utils.getSplitVehiclesList(allVehicleList)
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		if lastTimeStepFlag:			
 			for rl_agent in self._rl_vehicleID:
@@ -377,6 +431,10 @@ class SUMOEnv(Env):
 				accumulated_time_loss = 0
 				total_waiting_time=0
 				# print(edge_id,agent_id)
+				#check if edge_id is internal
+				# if self.edgeIdInternal(edge_id):
+				# 	print("Internal Edge ID - ",edge_id) #change it to the main edge_id
+
 				nextNodeID = self._net.getEdge(edge_id).getToNode().getID() # gives the intersection/junction ID
 				# now found the edges that is incoming to this junction
 				incomingEdgeList = self._net.getNode(nextNodeID).getIncoming()
@@ -406,7 +464,7 @@ class SUMOEnv(Env):
 	def collectObservationPerStep(self):
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
 
 		for rl_agent in self._rl_vehicleID:
 			self._avg_speed_rl+=self.traci.vehicle.getSpeed(rl_agent)
@@ -500,12 +558,13 @@ class SUMOEnv(Env):
 
 		self.collectObservation(False) #lastTimeStepFlag
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
 
 		if len(self._rl_vehicleID)!=28:
-			print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
+			print("Total RL agent before loadState: " + str(len(self._rl_vehicleID)))
 			self.traci.simulation.loadState('sumo_configs/savedstate.xml')
+			print("Total RL agent After loadState: " + str(len(self._rl_vehicleID)))
 			# self.keepRLAgentLooping()
 
 
@@ -541,7 +600,7 @@ class SUMOEnv(Env):
 		#index 0 = # give up the priority
 		#index 1 = # do nothing
 		#index 2 = # ask for priority
-		self.setNPCRandomTogglePriority() # to simulate human decision-making
+		self.setHeuristicAgentTogglePriority() # to simulate human decision-making
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
 			action = self.lastActionDict[agent_id]
@@ -575,14 +634,16 @@ class SUMOEnv(Env):
 				import traci
 		seed = 42
 		self._networkFileName = "sumo_configs/Grid1.net.xml"
-		self.sumoCMD = ["--seed", str(seed),"-W","--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),"--default.carfollowmodel", "IDM","--no-step-log","--statistic-output","output.xml"]
+		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),
+				 "--no-step-log","--lanechange.duration",str(3),"--statistic-output","output.xml"]
    
   
 		if withGUI:
 			sumoBinary = checkBinary('sumo-gui')
 			# sumoCMD += ["--start", "--quit-on-end"]
-			self.sumoCMD += ["--start", "--quit-on-end"]
-		else:
+			self.sumoCMD += ["--start"]
+			# self.sumoCMD += ["--start", "--quit-on-end"]
+		else:	
 			sumoBinary = checkBinary('sumo')
 
 		# print(sumoBinary)

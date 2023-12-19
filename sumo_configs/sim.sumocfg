@@ -1,6 +1,6 @@
 <configuration>
     <input>
-       <additional-files value="loopDetectors.add.xml"/>
+       <!-- <additional-files value="loopDetectors.add.xml"/> -->
        <net-file value="Grid1.net.xml"/>
        <route-files value="routes.rou.xml"/>
     </input>     
