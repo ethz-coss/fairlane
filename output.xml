@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-12-19 15:49:48 by Eclipse SUMO GUI Version 1.18.0
+<!-- generated on 2023-12-20 14:50:35 by Eclipse SUMO GUI Version 1.18.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
@@ -15,7 +15,6 @@
     <processing>
         <time-to-teleport value="-1"/>
         <waiting-time-memory value="25"/>
-        <lanechange.duration value="3"/>
     </processing>
 
     <report>
@@ -31,3 +30,13 @@
     </gui_only>
 
 </configuration>
+-->
+
+<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
+    <performance clockBegin="-1735133.12" clockEnd="-1735047.30" clockDuration="85.82" traciDuration="42.60" realTimeFactor="20.31" vehicleUpdatesPerSecond="2937.57" personUpdatesPerSecond="0.00" begin="0.00" end="1743.00" duration="1743.00"/>
+    <vehicles loaded="145" inserted="145" running="145" waiting="0"/>
+    <teleports total="0" jam="0" yield="0" wrongLane="0"/>
+    <safety collisions="0" emergencyStops="2" emergencyBraking="4"/>
+    <persons loaded="0" running="0" jammed="0"/>
+    <personTeleports total="0" abortWait="0" wrongDest="0"/>
+</statistics>

@@ -56,7 +56,7 @@ class SUMOEnv(Env):
 		self._timeLossOriginalDict = {}
 		self._net = sumolib.net.readNet(self._networkFileName,withInternal=True)
 		# set required vectorized gym env property
-		self.n = 28
+		self.n = 25
 		self.lastActionDict = {}
 		self.lastTimeLossRLAgents = {}
 		self._lastOverAllTimeLoss = {}
@@ -67,7 +67,7 @@ class SUMOEnv(Env):
 		self._releventEdgeId = []
 		self._timeLossThreshold = 60
 		self._lane_clearing_distance_threshold = 30
-		self._laneChangeAttemptDuration = 5 #seconds
+		self._laneChangeAttemptDuration = 25 #seconds
 
 		#test stats
 		self._currentTimeLoss_rl = 0
@@ -180,7 +180,7 @@ class SUMOEnv(Env):
 		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
 		missingRLAgentFlag = False
 		# print(rl_vehicleID)
-		if len(self._rl_vehicleID) != 28: #this it solve: sometimes self.traci/sumo drops vehicle due to some reason. To maintain the same number of RL agent 
+		if len(self._rl_vehicleID) != self.n: #this it solve: sometimes self.traci/sumo drops vehicle due to some reason. To maintain the same number of RL agent 
 			# print("number of RL vehicle -",len(self._rl_vehicleID))
 			missingRLAgentFlag = True #find missing vehicle ID	
 			missingRLList = set(self.original_rl_vehicleID).difference(self._rl_vehicleID)
@@ -242,14 +242,9 @@ class SUMOEnv(Env):
 		allVehicleList = self.traci.vehicle.getIDList()
 		print("Total number of vehicles",len(allVehicleList))
 		self._npc_vehicleID,self._rl_vehicleID, self._heuristic_vehicleID,self._cav_vehicleID= utils.getSplitVehiclesList(allVehicleList)
-		# for npc in self._npc_vehicleID:
-		# 	assignPriority = random.uniform(0, 1)
-		# 	if self.traci.vehicle.getTypeID(npc)=="passenger-priority": 
-		# 		if assignPriority > 0.5:
-		# 			self.traci.vehicle.setType(npc,"passenger-default")
-		# 	elif self.traci.vehicle.getTypeID(npc)=="passenger-default": 
-		# 		if assignPriority > 0.5:
-		# 			self.traci.vehicle.setType(npc,"passenger-priority")
+
+		counterDefault = 0
+		counterPriority = 0
 		for heuristic in self._heuristic_vehicleID:
 			which_lane = self.traci.vehicle.getLaneID(heuristic)
 			if self.edgeIdInternal(which_lane)==False:
@@ -259,42 +254,46 @@ class SUMOEnv(Env):
 				vehicle_on_priority_lane = self.traci.lane.getLastStepVehicleIDs(priority_lane)
 				npc_vehicleID,rl_vehicleID, heuristic_vehicleID,cav_vehicleID= utils.getSplitVehiclesList(vehicle_on_priority_lane)
 				heuristic_lane_position = self.traci.vehicle.getLanePosition(heuristic)
-
+				
+				flag = False
+				diff = 0
+				cav_lane_position = -999
 				for cav in cav_vehicleID:
 					cav_lane_position = self.traci.vehicle.getLanePosition(cav)
-					if heuristic_lane_position - cav_lane_position>= self._lane_clearing_distance_threshold:					
+					diff = heuristic_lane_position - cav_lane_position
+					if diff>= self._lane_clearing_distance_threshold:					
 						continue
 					else:
 						#change priority of heuristic agent as it is inside clearing distance
-						self.traci.vehicle.setType(heuristic,"heuristic-default")
-						bestLanes = self.traci.vehicle.getBestLanes(heuristic)
-						if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
-							#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
-							self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
-						else:
-							self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
-						break
-				if lane_index!='2':
-					self.traci.vehicle.setType(heuristic,"heuristic-priority")
-					bestLanes = self.traci.vehicle.getBestLanes(heuristic)
-					if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
-						#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
-						self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
-					else:
-						self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
+						# speed = self.traci.vehicle.getSpeed(heuristic)
+						if diff > 0:
+							# print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
+							self.traci.vehicle.setType(heuristic,"heuristic-default")
+							flag = True
+							bestLanes = self.traci.vehicle.getBestLanes(heuristic)
+							counterDefault+=1
+							# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+							# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+							# 	self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
+							# else:
+							# 	self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
+							break
+				if flag==False: 
+					if lane_index!=2 and self.traci.vehicle.getTypeID(heuristic)!="heuristic-priority":
+						# speed = self.traci.vehicle.getSpeed(heuristic)
+						# if speed>0.2:
+						self.traci.vehicle.setType(heuristic,"heuristic-priority")
+						counterPriority+=1
+						# if cav_lane_position ==-999:
+						# 	print(str(diff),"--",str(heuristic_lane_position),"--","No CAV present")
+						# else:
+						# 	print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
+						# self.traci.vehicle.changeLane(heuristic,2,50) 
+					
+
+		# print("PtoD change =",counterDefault,"  DtoP changes =",counterPriority)
 
 
-
-
-
-
-			# assignPriority = random.uniform(0, 1)
-			# if self.traci.vehicle.getTypeID(heuristic)=="heuristic-priority": 
-			# 	if assignPriority > 0.5:
-			# 		self.traci.vehicle.setType(heuristic,"heuristic-default")
-			# elif self.traci.vehicle.getTypeID(heuristic)=="heuristic-default": https://sumo.dlr.de/pydoc/traci._lane.html#LaneDomain-getLastStepVehicleIDs
-			# 	if assignPriority > 0.5:
-			# 		self.traci.vehicle.setType(heuristic,"heuristic-priority")
 
 	def reset(self,scenario):		
 		print("--------Inside RESET---------")
@@ -551,7 +550,7 @@ class SUMOEnv(Env):
 		vehicleCount = 0
 		while self._sumo_step <= self.action_steps:
 			# advance world state
-			self.collectObservationPerStep()
+			# self.collectObservationPerStep()
 			self.traci.simulationStep()
 			self._sumo_step +=1	
 			# self.collectObservation(False) ##Observation at each step till the end of the action step count (for reward computation) - lastTimeStepFlag lastTimeStepFlag
@@ -567,7 +566,7 @@ class SUMOEnv(Env):
 		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
 
-		if len(self._rl_vehicleID)!=28:
+		if len(self._rl_vehicleID)!=self.n:
 			print("Total RL agent before loadState: " + str(len(self._rl_vehicleID)))
 			self.traci.simulation.loadState('sumo_configs/savedstate.xml')
 			print("Total RL agent After loadState: " + str(len(self._rl_vehicleID)))
@@ -636,14 +635,7 @@ class SUMOEnv(Env):
 					pass # do nothing
 				else:
 					self.traci.vehicle.setType(agent_id,"rl-priority")
-					if self.edgeIdInternal(self.traci.vehicle.getLaneID(agent_id)) == False:
-						bestLanes = self.traci.vehicle.getBestLanes(agent_id)
-						if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
-							#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
-							self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
-						else:
-							self.traci.vehicle.changeLane(agent_id,1, self._laneChangeAttemptDuration)
-					# print("Priority Assigned")
+					self.traci.vehicle.changeLane(agent_id,2,self._laneChangeAttemptDuration) 
 	
 	def initSimulator(self,withGUI,portnum):
 		if withGUI:
@@ -656,9 +648,9 @@ class SUMOEnv(Env):
 		seed = 42
 		self._networkFileName = "sumo_configs/Grid1.net.xml"
 		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),
-				 "--no-step-log","--lanechange.duration",str(3),"--statistic-output","output.xml"]
+				 "--no-step-log","--statistic-output","output.xml"]
    
-  
+#   "--lanechange.duration",str(1),
 		if withGUI:
 			sumoBinary = checkBinary('sumo-gui')
 			# sumoCMD += ["--start", "--quit-on-end"]
