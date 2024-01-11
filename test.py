@@ -33,8 +33,8 @@ def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
     def get_env_fn(rank):
         def init_env():
             env = SUMOEnv(mode=mode)
-            env.seed(seed + rank * 1000)
-            np.random.seed(seed + rank * 1000)
+            # env.seed(seed + rank * 1000)
+            # np.random.seed(seed + rank * 1000)
             return env
         return init_env
     if n_rollout_threads == 1:
@@ -62,7 +62,7 @@ def run(config):
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
-    testResultFilePath = f"results/default_{config.run_id}.csv"  
+    testResultFilePath = f"results/Baseline_2_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
         written_headers = False
@@ -120,7 +120,7 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run11", type=str) # runXX is performing the best on training data
+    parser.add_argument("--run_id", default="run4", type=str) # runXX is performing the best on training data
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
@@ -129,8 +129,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=2, type=int)
-    parser.add_argument("--episode_length", default=100, type=int)
+    parser.add_argument("--n_episodes", default=3, type=int)
+    parser.add_argument("--episode_length", default=10, type=int)
     parser.add_argument("--steps_per_update", default=10, type=int)
     parser.add_argument("--batch_size",
                         default=64, type=int,
