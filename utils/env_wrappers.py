@@ -133,6 +133,10 @@ class DummyVecEnv(VecEnv):
         env = self.envs[0]
         return env.getTestStats()
     
+    def set_sumo_seed(self,seed):
+        env = self.envs[0]
+        return env.set_sumo_seed(seed)
+    
     # def setInitialParameters(self,flag):
     #     env =self.envs[0]
     #     env.setInitialParameters(flag)

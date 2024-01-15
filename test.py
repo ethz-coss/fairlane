@@ -33,8 +33,8 @@ def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
     def get_env_fn(rank):
         def init_env():
             env = SUMOEnv(mode=mode)
-            # env.seed(seed + rank * 1000)
-            # np.random.seed(seed + rank * 1000)
+            env.seed(seed + rank * 1000)
+            np.random.seed(seed + rank * 1000)
             return env
         return init_env
     if n_rollout_threads == 1:
@@ -62,13 +62,14 @@ def run(config):
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
-    testResultFilePath = f"results/Baseline_2_{config.run_id}.csv"  
+    testResultFilePath = f"results/Baseline_2_{config.run_id}.csv" 
+    # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
         written_headers = False
 
-        for seed in list(range(42,43)): # realizations for averaging
-           
+        for seed in list(range(42,47)): # realizations for averaging
+            env.set_sumo_seed(seed)
             for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
                 total_reward = 0
                 print("Episodes %i-%i of %i" % (ep_i + 1,
@@ -129,8 +130,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=3, type=int)
-    parser.add_argument("--episode_length", default=10, type=int)
+    parser.add_argument("--n_episodes", default=1, type=int)
+    parser.add_argument("--episode_length", default=5, type=int)
     parser.add_argument("--steps_per_update", default=10, type=int)
     parser.add_argument("--batch_size",
                         default=64, type=int,

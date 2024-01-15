@@ -40,26 +40,26 @@
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
 	
 	<!-- Baseline 1 configurations -->
-	<!-- <vType id="passenger-priority" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="210,105,30"/>
-	<vType id="cav-priority" vClass="custom1" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="white"/>
-    <vType id="rl-priority" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="red"/>
-	<vType id="heuristic-priority" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="128,0,128"/>
+	<!-- <vType id="passenger-priority" vClass="passenger" length="5" maxSpeed="70" color="210,105,30"/>
+	<vType id="cav-priority" vClass="custom1" length="5" maxSpeed="70" color="white"/>
+    <vType id="rl-priority" vClass="passenger" length="5" maxSpeed="70" color="red"/>
+	<vType id="heuristic-priority" vClass="passenger" sigma="0.5" length="5" maxSpeed="70" color="128,0,128"/>
 
-    <vType id="passenger-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="yellow"/>
-    <vType id="rl-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="green"/>
-	<vType id="heuristic-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="blue"/>
-	 -->
-	<!-- Baseline 2 configurations -->
-	<vType id="passenger-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="210,105,30"/>
-	<vType id="cav-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="white"/>
-    <vType id="rl-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="red"/>
-	<vType id="heuristic-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="128,0,128"/>
-
-    <vType id="passenger-default" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="yellow"/>
-    <vType id="rl-default" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="green"/>
-	<vType id="heuristic-default" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="blue"/>
+    <vType id="passenger-default" vClass="passenger" length="5" maxSpeed="70" color="yellow"/>
+    <vType id="rl-default" vClass="passenger" length="5" maxSpeed="70" color="green"/>
+	<vType id="heuristic-default" vClass="passenger" length="5" maxSpeed="70" color="blue"/> -->
 	
+	<!-- Baseline 2 configurations -->
+	<vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
+	<vType id="cav-priority" vClass="custom1" length="5" maxSpeed="70" color="white"/>
+    <vType id="rl-priority" vClass="custom2" length="5" maxSpeed="70" color="red"/>
+	<vType id="heuristic-priority" vClass="custom2" length="5" maxSpeed="70" color="128,0,128"/>
 
+    <vType id="passenger-default" vClass="custom2" length="5" maxSpeed="70" color="yellow"/>
+    <vType id="rl-default" vClass="custom2" length="5" maxSpeed="70" color="green"/>
+	<vType id="heuristic-default" vClass="custom2" length="5" maxSpeed="70" color="blue"/>
+	
+	<!-- Test configurations -->
 	<!-- <vType id="passenger-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="210,105,30"/>
 	<vType id="cav-priority" vClass="custom1" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="white"/>
     <vType id="rl-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="red"/>
@@ -67,8 +67,8 @@
 
     <vType id="passenger-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="yellow"/>
     <vType id="rl-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="green"/>
-	<vType id="heuristic-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="blue"/>
-	 -->
+	<vType id="heuristic-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="blue"/> -->
+	
     
     <!-- <flow id="f_0" type="passenger-priority" begin="0.00" from="A2B2" to="E1E0" via="B2B1 C1D1" end="3600.00" vehsPerHour="200" />
     <flow id="f_1" type="passenger-default" begin="0.00" from="E0D0" to="D0D1" end="3600.00" vehsPerHour="200" />

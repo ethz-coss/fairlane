@@ -37,8 +37,10 @@ class SUMOEnv(Env):
 		self._mode = mode
 		self._networkFileName = "sumo_configs/Grid1.net.xml"
 		self._routeFileName = "sumo_configs/routes.rou.xml"
-		self._seed(40)
-		np.random.seed(42)
+		self._episodeStep = 0
+		# self._seed(40)
+		# np.random.seed(42)
+		self._sumo_seed = 42
 		self.withGUI = mode
 		self.action_steps = 25	
 		self.traci = self.initSimulator(self.withGUI, self.pid)
@@ -86,6 +88,7 @@ class SUMOEnv(Env):
 		self._avg_speed_heuristic = 0
 		self._avg_speed_npc = 0
 		self._avg_speed_cav = 0		
+		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
 		self._average_edge_occupancy = 0
 		self._average_priorityLane_occupancy = 0
 		self._average_PMx_emission = 0
@@ -271,9 +274,11 @@ class SUMOEnv(Env):
 		self._avg_speed_heuristic = 0
 		self._avg_speed_npc = 0
 		self._avg_speed_cav = 0
+		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
 		self._average_edge_occupancy = 0
 		self._average_priorityLane_occupancy = 0
 		self._average_PMx_emission = 0
+		self._episodeStep = 0	
 
 		# self._npc_vehicleID=0
 		# self._rl_vehicleID=0
@@ -348,6 +353,10 @@ class SUMOEnv(Env):
 		self._scenario = scenario
 		self.resetAllVariables()
 		obs_n = []
+		seed = self._sumo_seed
+		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(3600),"--time-to-teleport", str(-1),
+				 "--no-step-log","--statistic-output","output.xml"]
+		self.sumoCMD += ["--start"]
 		self.traci.load(self.sumoCMD + ['-n', self._networkFileName, '-r', self._routeFileName])
 		#WARMUP PERIOD
 		while self._sumo_step <= self.action_steps:
@@ -515,6 +524,9 @@ class SUMOEnv(Env):
 		else:
 			return True
 	
+	def set_sumo_seed(self, seed):
+		self._sumo_seed = seed
+
 	def collectObservation(self,lastTimeStepFlag):
 		#This function collects sum of time loss for all vehicles related to a in-concern RL agent. 
 		
@@ -586,43 +598,55 @@ class SUMOEnv(Env):
 		allVehicleList = self.traci.vehicle.getIDList()
 		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
 		
-		self._currentTimeLoss_Heuristic = 0
+		avg_speed_heuristic=0;currentTimeLoss_Heuristic=0;currentWaitingTime_Heuristic=0
 		for heuristic_agent in self._heuristic_vehicleID:
-			self._avg_speed_heuristic+=self.traci.vehicle.getSpeed(heuristic_agent)
+			avg_speed_heuristic+=self.traci.vehicle.getSpeed(heuristic_agent)
 			elapsed_its_own_time = self.traci.vehicle.getDeparture(heuristic_agent)
-			self._currentTimeLoss_Heuristic += self.traci.vehicle.getTimeLoss(heuristic_agent) / (elapsed_simulation_time - elapsed_its_own_time)
-		self._currentTimeLoss_Heuristic = self._currentTimeLoss_Heuristic/len(self._heuristic_vehicleID)
-		self._avg_speed_heuristic = self._avg_speed_heuristic/len(self._heuristic_vehicleID)
+			currentTimeLoss_Heuristic += self.traci.vehicle.getTimeLoss(heuristic_agent)
+			currentWaitingTime_Heuristic += self.traci.vehicle.getWaitingTime(heuristic_agent)
+		self._currentTimeLoss_Heuristic += currentTimeLoss_Heuristic/len(self._heuristic_vehicleID)
+		self._avg_speed_heuristic += avg_speed_heuristic/len(self._heuristic_vehicleID)
+		self._currentWaitingTime_Heuristic += currentWaitingTime_Heuristic/len(self._heuristic_vehicleID)
 
+		avg_speed_rl=0;currentTimeLoss_rl=0;currentWaitingTime_rl=0
 		for rl_agent in self._rl_vehicleID:
-			self._avg_speed_rl+=self.traci.vehicle.getSpeed(rl_agent)
+			avg_speed_rl+=self.traci.vehicle.getSpeed(rl_agent)
 			elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
-			self._currentTimeLoss_rl += self.traci.vehicle.getTimeLoss(rl_agent) / (elapsed_simulation_time - elapsed_its_own_time)
-		self._currentTimeLoss_rl = self._currentTimeLoss_rl/len(self._rl_vehicleID)
-		self._avg_speed_rl = self._avg_speed_rl/len(self._rl_vehicleID)
+			currentTimeLoss_rl += self.traci.vehicle.getTimeLoss(rl_agent)
+			currentWaitingTime_rl += self.traci.vehicle.getWaitingTime(rl_agent)
+		self._currentTimeLoss_rl += currentTimeLoss_rl/len(self._rl_vehicleID)
+		self._avg_speed_rl += avg_speed_rl/len(self._rl_vehicleID)
+		self._currentWaitingTime_rl += currentWaitingTime_rl/len(self._rl_vehicleID)
 
+		avg_speed_npc=0;currentTimeLoss_npc=0;currentWaitingTime_npc=0
 		for npc_agent in self._npc_vehicleID:
-			self._avg_speed_npc+=self.traci.vehicle.getSpeed(npc_agent)
+			avg_speed_npc+=self.traci.vehicle.getSpeed(npc_agent)
 			elapsed_its_own_time = self.traci.vehicle.getDeparture(npc_agent)
-			self._currentTimeLoss_npc += self.traci.vehicle.getTimeLoss(npc_agent) / (elapsed_simulation_time - elapsed_its_own_time)
-		self._currentTimeLoss_npc = self._currentTimeLoss_npc/len(self._npc_vehicleID)
-		self._avg_speed_npc = self._avg_speed_npc/len(self._npc_vehicleID)
+			currentTimeLoss_npc += self.traci.vehicle.getTimeLoss(npc_agent)
+			currentWaitingTime_npc += self.traci.vehicle.getWaitingTime(npc_agent)
+		self._currentTimeLoss_npc += currentTimeLoss_npc/len(self._npc_vehicleID)
+		self._avg_speed_npc += avg_speed_npc/len(self._npc_vehicleID)
+		self._currentWaitingTime_npc += currentWaitingTime_npc/len(self._npc_vehicleID)
 
+		avg_speed_cav = 0;currentTimeLoss_cav=0;currentWaitingTime_cav=0
 		for cav_agent in self._cav_vehicleID:
-			self._avg_speed_cav+=self.traci.vehicle.getSpeed(cav_agent)
+			avg_speed_cav+=self.traci.vehicle.getSpeed(cav_agent)
 			elapsed_its_own_time = self.traci.vehicle.getDeparture(cav_agent)
-			self._currentTimeLoss_cav += self.traci.vehicle.getTimeLoss(cav_agent) / (elapsed_simulation_time - elapsed_its_own_time)
-		self._currentTimeLoss_cav = self._currentTimeLoss_cav/len(self._cav_vehicleID)
-		self._avg_speed_cav = self._avg_speed_cav/len(self._cav_vehicleID)
+			currentTimeLoss_cav += self.traci.vehicle.getTimeLoss(cav_agent) 
+			currentWaitingTime_cav += self.traci.vehicle.getWaitingTime(cav_agent)
+		self._currentTimeLoss_cav += currentTimeLoss_cav/len(self._cav_vehicleID)
+		self._avg_speed_cav += avg_speed_cav/len(self._cav_vehicleID)
+		self._currentWaitingTime_cav += currentWaitingTime_cav/len(self._cav_vehicleID)
 
+
+		average_priorityLane_occupancy = 0;average_PMx_emission=0
 		for edge in self._releventEdgeId:
 			#check only for priority lane
-			priority_lane = edge + "_2"
-			self._average_priorityLane_occupancy += self.traci.lane.getLastStepOccupancy(priority_lane)
-			self._average_PMx_emission += self.traci.edge.getPMxEmission(edge)
-
-		self._average_priorityLane_occupancy = self._average_priorityLane_occupancy/len(self._releventEdgeId)
-		self._average_PMx_emission = self._average_PMx_emission/len(self._releventEdgeId)
+			priority_lane = edge + "_0"
+			average_priorityLane_occupancy += self.traci.lane.getLastStepOccupancy(priority_lane)
+			average_PMx_emission += self.traci.edge.getPMxEmission(edge)
+		self._average_priorityLane_occupancy += average_priorityLane_occupancy/len(self._releventEdgeId)
+		self._average_PMx_emission += average_PMx_emission/len(self._releventEdgeId)
 
 		# for rl_agent in self._rl_vehicleID:
 		# 	total_waiting_time = 0
@@ -644,28 +668,37 @@ class SUMOEnv(Env):
 	def getTestStats(self):
 	
 			avg_delay_RL=0;avg_speed_RL=0;avg_delay_NPC=0;avg_speed_NPC=0;avg_occupancy_priorityLane=0;avg_PMx_emission=0
-			avg_delay_CAV=0;avg_speed_CAV=0;avg_delay_Heuristic=0
+			avg_delay_CAV=0;avg_speed_CAV=0;avg_delay_Heuristic=0;avg_speed_Heuristic=0;avg_delay_ALLButCAV=0;avg_speed_AllButCAV=0
 			
-			avg_delay_CAV = self._currentTimeLoss_cav/self.action_steps
+			# avg_delay_CAV = self._currentTimeLoss_cav/self.action_steps
+			avg_delay_CAV = self._currentWaitingTime_cav/self.action_steps
 			avg_speed_CAV = self._avg_speed_cav/self.action_steps
 
-			avg_delay_RL = self._currentTimeLoss_rl/self.action_steps
+			# avg_delay_RL = self._currentTimeLoss_rl/self.action_steps
+			avg_delay_RL = self._currentWaitingTime_rl/self.action_steps
 			avg_speed_RL = self._avg_speed_rl/self.action_steps
 
-			avg_delay_NPC = self._currentTimeLoss_npc/self.action_steps
+			# avg_delay_NPC = self._currentTimeLoss_npc/self.action_steps
+			avg_delay_NPC = self._currentWaitingTime_npc/self.action_steps
 			avg_speed_NPC = self._avg_speed_npc/self.action_steps
 
 			avg_occupancy_priorityLane = self._average_priorityLane_occupancy/self.action_steps
 			avg_PMx_emission = self._average_PMx_emission/self.action_steps
 
-			avg_delay_Heuristic = self._currentTimeLoss_Heuristic/self.action_steps
+			# avg_delay_Heuristic = self._currentTimeLoss_Heuristic/self.action_steps
+			avg_delay_Heuristic = self._currentWaitingTime_Heuristic/self.action_steps
+			avg_speed_Heuristic = self._avg_speed_heuristic/self.action_steps
 
-			avg_delay_ALLButCAV = avg_delay_RL + avg_delay_NPC + avg_delay_Heuristic
+			avg_delay_ALLButCAV = (avg_delay_RL + avg_delay_NPC + avg_delay_Heuristic)/3
+			avg_speed_AllButCAV = (avg_speed_RL + avg_speed_NPC + avg_speed_Heuristic)/3
 			
 			# headers = ['avg_delay_RL', 'avg_speed_RL','avg_delay_NPC', 'avg_speed_NPC','congestion(avg_occupancy_network))','avg_PMx_emission']
 			# values = [avg_delay_RL, avg_speed_RL, avg_delay_NPC,avg_speed_NPC,avg_occupancy_network,avg_PMx_emission]
-			headers = ['avg_delay_CAV','avg_delay_ALL','congestion(avg_occupancy_priorityLane)','avg_PMx_emission','Episode_Step']
-			values = [avg_delay_CAV,avg_delay_ALLButCAV,avg_occupancy_priorityLane,avg_PMx_emission,self._sumo_step]
+			headers = ['avg_delay_CAV','avg_delay_RL','avg_delay_NPC','avg_delay_Heuristic','avg_speed_CAV','avg_speed_NPC','avg_speed_RL','avg_speed_Heuristic','avg_delay_ALL','avg_speed_AllButCAV','congestion(avg_occupancy_priorityLane)','avg_PMx_emission','Episode_Step']
+			values = [avg_delay_CAV,avg_delay_RL,avg_delay_NPC,avg_delay_Heuristic,avg_speed_CAV,avg_speed_NPC,avg_speed_RL,avg_speed_Heuristic,avg_delay_ALLButCAV,avg_speed_AllButCAV,avg_occupancy_priorityLane,avg_PMx_emission,self._episodeStep]
+			self._currentTimeLoss_cav=0;self._avg_speed_cav=0;self._currentTimeLoss_rl=0;self._avg_speed_rl=0;self._currentTimeLoss_npc=0;self._avg_speed_npc=0
+			self._average_priorityLane_occupancy=0;self._average_PMx_emission=0;self._currentTimeLoss_Heuristic=0;self._avg_speed_heuristic=0
+			self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
 			return headers, values
 	
 	def make_action(self,actions):
@@ -686,7 +719,7 @@ class SUMOEnv(Env):
 		for agent in self.agents:
 			agent.done = False
 
-		
+		self._episodeStep+=1
 		self._sumo_step = 0
 		
 		if actionFlag == True:
@@ -802,7 +835,7 @@ class SUMOEnv(Env):
 				import libsumo as traci
 			except:
 				import traci
-		seed = 42
+		seed = self._sumo_seed
 		self._networkFileName = "sumo_configs/Grid1.net.xml"
 		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(3600),"--time-to-teleport", str(-1),
 				 "--no-step-log","--statistic-output","output.xml"]
