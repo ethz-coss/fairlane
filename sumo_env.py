@@ -302,7 +302,7 @@ class SUMOEnv(Env):
 			if self.edgeIdInternal(which_lane)==False:
 				lane_index = which_lane.split("_")[1]
 				which_edge = which_lane.split("_")[0]
-				priority_lane = which_edge + str("_2") # find priority lane for that vehicle
+				priority_lane = which_edge + str("_0") # find priority lane for that vehicle
 				vehicle_on_priority_lane = self.traci.lane.getLastStepVehicleIDs(priority_lane)
 				npc_vehicleID,rl_vehicleID, heuristic_vehicleID,cav_vehicleID= utils.getSplitVehiclesList(vehicle_on_priority_lane)
 				heuristic_lane_position = self.traci.vehicle.getLanePosition(heuristic)
@@ -331,7 +331,7 @@ class SUMOEnv(Env):
 							# 	self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
 							break
 				if flag==False: 
-					if lane_index!=2 and self.traci.vehicle.getTypeID(heuristic)!="heuristic-priority":
+					if lane_index!=0 and self.traci.vehicle.getTypeID(heuristic)!="heuristic-priority":
 						# speed = self.traci.vehicle.getSpeed(heuristic)
 						# if speed>0.2:
 						self.traci.vehicle.setType(heuristic,"heuristic-priority")
@@ -799,7 +799,7 @@ class SUMOEnv(Env):
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
 			action = self.lastActionDict[agent_id]
-			action = 1
+			# action = 1
 			# if action==2:
 			# 	print(action)
 			if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
@@ -825,7 +825,7 @@ class SUMOEnv(Env):
 					pass # do nothing
 				else:
 					self.traci.vehicle.setType(agent_id,"rl-priority")
-					self.traci.vehicle.changeLane(agent_id,2,self._laneChangeAttemptDuration) 
+					self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
 	
 	def initSimulator(self,withGUI,portnum):
 		if withGUI:
