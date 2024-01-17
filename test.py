@@ -38,7 +38,7 @@ def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
             return env
         return init_env
     if n_rollout_threads == 1:
-        return DummyVecEnv([get_env_fn(0)])
+        return DummyVecEnv([get_env_fn(0)],mode)
     else:
         return SubprocVecEnv([get_env_fn(i) for i in range(n_rollout_threads)])
     
@@ -62,7 +62,7 @@ def run(config):
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
-    testResultFilePath = f"results/Model_4999.csv" 
+    testResultFilePath = f"results/Baseline_2.csv" 
     # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
@@ -119,7 +119,7 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run1", type=str) # runXX is performing the best on training data
+    parser.add_argument("--run_id", default="run6", type=str) # runXX is performing the best on training data
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",

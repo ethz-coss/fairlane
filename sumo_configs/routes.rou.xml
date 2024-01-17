@@ -50,24 +50,24 @@
 	<vType id="heuristic-default" vClass="passenger" length="5" maxSpeed="70" color="blue"/> -->
 	
 	<!-- Baseline 2 configurations -->
-	<!-- <vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
+	<vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
 	<vType id="cav-priority" vClass="custom1" length="5" maxSpeed="70" color="white"/>
     <vType id="rl-priority" vClass="custom2" length="5" maxSpeed="70" color="red"/>
 	<vType id="heuristic-priority" vClass="custom2" length="5" maxSpeed="70" color="128,0,128"/>
 
     <vType id="passenger-default" vClass="custom2" length="5" maxSpeed="70" color="yellow"/>
     <vType id="rl-default" vClass="custom2" length="5" maxSpeed="70" color="green"/>
-	<vType id="heuristic-default" vClass="custom2" length="5" maxSpeed="70" color="blue"/> -->
+	<vType id="heuristic-default" vClass="custom2" length="5" maxSpeed="70" color="blue"/>
 	
 	<!-- Model configurations -->
-	<vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
+	<!-- <vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
 	<vType id="cav-priority" vClass="custom1" length="5" maxSpeed="70" color="white"/>
     <vType id="rl-priority" vClass="custom2" length="5" maxSpeed="70" color="red"/>
 	<vType id="heuristic-priority" vClass="custom2" length="5" maxSpeed="70" color="128,0,128"/>
 
     <vType id="passenger-default" vClass="passenger" length="5" maxSpeed="70" color="yellow"/>
     <vType id="rl-default" vClass="passenger" length="5" maxSpeed="70" color="green"/>
-	<vType id="heuristic-default" vClass="passenger" length="5" maxSpeed="70" color="blue"/>
+	<vType id="heuristic-default" vClass="passenger" length="5" maxSpeed="70" color="blue"/> -->
 	
 	<!-- lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5"  -->
     

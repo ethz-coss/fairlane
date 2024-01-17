@@ -499,13 +499,14 @@ class SUMOEnv(Env):
 		if len(self.lastActionDict) !=0:				
 			# reward_cooperative = self.computeCooperativeReward(agent_id)
 			# reward_overallNetwork = self.computeOverallNetworkReward(agent_id)
-			reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
-			reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
+			# reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
+			# reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
 			reward_cav_priority = self.computeCAVReward(agent_id)
 			# overall_reward = reward_cooperative + reward_overallNetwork + reward_cav_priority
 			# overall_reward = reward_cav_priority
 			# print(overall_reward)		
-			overall_reward = reward_cav_priority + reward_RLWaitingTime + reward_cavWaitingTime
+			# overall_reward = reward_cav_priority + reward_RLWaitingTime + reward_cavWaitingTime
+			overall_reward = reward_cav_priority
 
 		return overall_reward
 		
@@ -767,7 +768,7 @@ class SUMOEnv(Env):
 		vehicleCount = 0
 		while self._sumo_step <= self.action_steps:
 			# advance world state
-			# self.collectObservationPerStep()
+			self.collectObservationPerStep()
 			self.traci.simulationStep()
 			self._sumo_step +=1	
 			# self.collectObservation(False) ##Observation at each step till the end of the action step count (for reward computation) - lastTimeStepFlag lastTimeStepFlag
@@ -828,7 +829,7 @@ class SUMOEnv(Env):
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
 			action = self.lastActionDict[agent_id]
-			# action = 1
+			action = 1
 			# if action==2:
 			# 	print(action)
 			if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
