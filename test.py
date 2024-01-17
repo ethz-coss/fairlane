@@ -42,6 +42,12 @@ def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
     else:
         return SubprocVecEnv([get_env_fn(i) for i in range(n_rollout_threads)])
     
+
+def sample_agents(model, num_agents):
+    curr_num_agents = model.nagents
+    model.agents = np.random.choice(model.agents, size=num_agents)
+    return model
+
 def run(config):
     model_dir = Path('./models') / config.env_id / config.model_name
     curr_run = config.run_id + config.model_id
@@ -51,13 +57,14 @@ def run(config):
 
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
-    if not USE_CUDA:
-        torch.set_num_threads(config.n_training_threads)
 
-    env = make_parallel_env(config.env_id, config.n_rollout_threads, config.seed,
-                            config.discrete_action)
+    NUM_AGENTS = 50
+    env = make_parallel_env(config.env_id, 1, config.seed, config.discrete_action)
 
     maddpg = MADDPG.init_from_save(run_dir)
+    maddpg = sample_agents(maddpg, NUM_AGENTS)
+    assert maddpg.nagents==env.envs[0].n
+
     t = 0
     scores = []    
     smoothed_total_reward = 0

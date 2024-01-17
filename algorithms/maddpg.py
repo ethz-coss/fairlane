@@ -29,7 +29,6 @@ class MADDPG(object):
             hidden_dim (int): Number of hidden dimensions for networks
             discrete_action (bool): Whether or not to use discrete action space
         """
-        self.nagents = len(agent_init_params) #len(alg_types)
         self.alg_types = alg_types
         self.agents = [DDPGAgent(lr=lr, discrete_action=discrete_action,
                                  hidden_dim=hidden_dim,
@@ -45,6 +44,10 @@ class MADDPG(object):
         self.trgt_pol_dev = 'cpu'  # device for target policies
         self.trgt_critic_dev = 'cpu'  # device for target critics
         self.niter = 0
+
+    @property
+    def nagents(self):
+        return len(self.agents) #len(alg_types)
 
     @property
     def policies(self):
