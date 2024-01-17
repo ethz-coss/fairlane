@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2024-01-15 11:49:19 by Eclipse SUMO GUI Version 1.18.0
-<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+<!-- generated on 2024-01-17 12:49:26 by Eclipse SUMO libsumo Version 1.19.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/libsumoConfiguration.xsd">
 
     <input>
         <net-file value="sumo_configs/Grid1.net.xml"/>
@@ -18,11 +18,11 @@
     </processing>
 
     <report>
-        <no-step-log value="true"/>
+        <no-warnings value="true"/>
     </report>
 
     <random_number>
-        <seed value="46"/>
+        <seed value="42"/>
     </random_number>
 
     <gui_only>
@@ -30,13 +30,3 @@
     </gui_only>
 
 </configuration>
--->
-
-<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
-    <performance clockBegin="580025.92" clockEnd="580042.31" clockDuration="16.39" traciDuration="7.04" realTimeFactor="9.52" vehicleUpdatesPerSecond="1062.96" personUpdatesPerSecond="0.00" begin="0.00" end="156.00" duration="156.00"/>
-    <vehicles loaded="115" inserted="115" running="115" waiting="0"/>
-    <teleports total="0" jam="0" yield="0" wrongLane="0"/>
-    <safety collisions="0" emergencyStops="0" emergencyBraking="3"/>
-    <persons loaded="0" running="0" jammed="0"/>
-    <personTeleports total="0" abortWait="0" wrongDest="0"/>
-</statistics>

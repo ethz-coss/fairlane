@@ -13,7 +13,7 @@ from algorithms.maddpg import MADDPG
 
 import numpy as np
 import sys
-sys.path.append('C:/D/SUMO/MARL/multiagentRL/')
+
 from sumo_env import SUMOEnv
 from matplotlib import pyplot as plt
 import warnings
@@ -26,7 +26,7 @@ import os
 from tqdm import tqdm
 import csv
 
-mode = True
+mode = False
 USE_CUDA = False  # torch.cuda.is_available()
 
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
@@ -62,7 +62,7 @@ def run(config):
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
-    testResultFilePath = f"results/Baseline_2_{config.run_id}.csv" 
+    testResultFilePath = f"results/Model_4999.csv" 
     # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
@@ -94,14 +94,12 @@ def run(config):
                     obs = next_obs
                     t += config.n_rollout_threads
                     total_reward += rewards[0]
-
-                    headers, values = env.getTestStats()
-
-              
-                    if not written_headers:
-                        writer.writerow(headers)
-                        written_headers = True
-                    writer.writerow(values)
+                    if et_i%10==0:
+                        headers, values = env.getTestStats()
+                        if not written_headers:
+                            writer.writerow(headers)
+                            written_headers = True
+                        writer.writerow(values)
 
                 total_reward = total_reward/step
                 # show reward
@@ -121,7 +119,7 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run4", type=str) # runXX is performing the best on training data
+    parser.add_argument("--run_id", default="run1", type=str) # runXX is performing the best on training data
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
@@ -131,7 +129,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1, type=int)
-    parser.add_argument("--episode_length", default=5, type=int)
+    parser.add_argument("--episode_length", default=40, type=int)
     parser.add_argument("--steps_per_update", default=10, type=int)
     parser.add_argument("--batch_size",
                         default=64, type=int,

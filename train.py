@@ -24,11 +24,14 @@ from tqdm import tqdm
 import csv
 
 
-# display = 'DISPLAY' in os.environ
-# use_gui = False
-# mode = 'gui' if (use_gui and display) else 'none'
+use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
+wandb.init(
+  project="PriorityLane",
+  tags=["MultiAgent", "RL"],
+  mode=use_wandb
+)
 
-mode = True
+mode = False
 USE_CUDA = False  # torch.cuda.is_available()
 
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
@@ -40,7 +43,7 @@ def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
             return env
         return init_env
     if n_rollout_threads == 1:
-        return DummyVecEnv([get_env_fn(0)])
+        return DummyVecEnv([get_env_fn(0)],mode)
     else:
         return SubprocVecEnv([get_env_fn(i) for i in range(n_rollout_threads)])
 
@@ -146,9 +149,15 @@ def run(config):
         #     logger.add_scalar('agent%i/mean_episode_rewards' % a_i, a_ep_rew, ep_i)
         
         total_reward = total_reward/step
+        if ep_i == 0:
+            smoothed_total_reward = total_reward
         # show reward
         smoothed_total_reward = smoothed_total_reward * 0.9 + total_reward * 0.1
         scores.append(smoothed_total_reward)
+        
+        wandb.log({'# Episodes': ep_i, 
+                "Average Smooth Reward": smoothed_total_reward,
+                "Average Raw Reward": total_reward})
     
 
         if ep_i % config.save_interval < config.n_rollout_threads:
@@ -171,11 +180,11 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=500, type=int)
-    parser.add_argument("--episode_length", default=100, type=int)
+    parser.add_argument("--n_episodes", default=5000, type=int)
+    parser.add_argument("--episode_length", default=40, type=int)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
-                        default=128, type=int,
+                        default=1024, type=int,
                         help="Batch size for model training")
     parser.add_argument("--n_exploration_eps", default=25000, type=int)
     parser.add_argument("--init_noise_scale", default=0.3, type=float)

@@ -42,7 +42,8 @@ class SUMOEnv(Env):
 		# np.random.seed(42)
 		self._sumo_seed = 42
 		self.withGUI = mode
-		self.action_steps = 25	
+		self.action_steps = 30	
+		self._warmup_steps = 299
 		self.traci = self.initSimulator(self.withGUI, self.pid)
 		self._sumo_step = 0		
 		self.shared_reward = True
@@ -116,7 +117,7 @@ class SUMOEnv(Env):
 		# self._num_observation = [len(self.getState(f'RL_{i}')) for i in range(self.n)]
 		# self._num_observation = [6,6]
 		self._num_observation = 5
-		self._num_actions = 3
+		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
 		# self._num_observation = [len(Agent(self, i, self.edge_agents[0]).getState()) for i in range(self._num_lane_agents)]*len(self.edge_agents)
 		self.action_space = []
@@ -218,7 +219,7 @@ class SUMOEnv(Env):
 	
 	def keepRLAgentLooping(self):
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle = self.getSplitVehiclesList(allVehicleList)
 		missingRLAgentFlag = False
 		# print(rl_vehicleID)
 		if len(self._rl_vehicleID) != self.n: #this it solve: sometimes self.traci/sumo drops vehicle due to some reason. To maintain the same number of RL agent 
@@ -293,7 +294,7 @@ class SUMOEnv(Env):
 		#still get similar or better training output? One novelty of the paper, probably?
 		allVehicleList = self.traci.vehicle.getIDList()
 		# print("Total number of vehicles",len(allVehicleList))
-		self._npc_vehicleID,self._rl_vehicleID, self._heuristic_vehicleID,self._cav_vehicleID= utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID, self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
 
 		counterDefault = 0
 		counterPriority = 0
@@ -304,7 +305,7 @@ class SUMOEnv(Env):
 				which_edge = which_lane.split("_")[0]
 				priority_lane = which_edge + str("_0") # find priority lane for that vehicle
 				vehicle_on_priority_lane = self.traci.lane.getLastStepVehicleIDs(priority_lane)
-				npc_vehicleID,rl_vehicleID, heuristic_vehicleID,cav_vehicleID= utils.getSplitVehiclesList(vehicle_on_priority_lane)
+				npc_vehicleID,rl_vehicleID, heuristic_vehicleID,cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(vehicle_on_priority_lane)
 				heuristic_lane_position = self.traci.vehicle.getLanePosition(heuristic)
 				
 				flag = False
@@ -354,17 +355,17 @@ class SUMOEnv(Env):
 		self.resetAllVariables()
 		obs_n = []
 		seed = self._sumo_seed
-		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(3600),"--time-to-teleport", str(-1),
-				 "--no-step-log","--statistic-output","output.xml"]
+		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(3600),"--time-to-teleport", str(-1), "-W", "true",
+				"--statistic-output","output.xml"]
 		self.sumoCMD += ["--start"]
 		self.traci.load(self.sumoCMD + ['-n', self._networkFileName, '-r', self._routeFileName])
 		#WARMUP PERIOD
-		while self._sumo_step <= self.action_steps:
+		while self._sumo_step <= self._warmup_steps:
 			self.traci.simulationStep() 		# Take a simulation step to initialize	
 			# print(self.traci.vehicle.getTimeLoss("RL_9"))
 			if self._sumo_step == 10:
 				allVehicleList = self.traci.vehicle.getIDList()
-				self._npc_vehicleID,self.original_rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID= utils.getSplitVehiclesList(allVehicleList)
+				self._npc_vehicleID,self.original_rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
 				
 				# self.initializeRLAgentStartValues()
 			# 	self.keepRLAgentLooping()				
@@ -455,22 +456,22 @@ class SUMOEnv(Env):
 
 		if self._numberOfCAVWithinClearingDistance[rl_agent] > 0: #or self._numberOfCAVApproachingIntersection[rl_agent]>0:
 			if before_priority=="rl-priority" and after_priority=="rl-default":
-				reward = +0
+				reward = +1
 			elif before_priority=="rl-priority" and after_priority=="rl-priority":
 				reward = -1
 			elif before_priority=="rl-default" and after_priority=="rl-default":
-				reward = +0
+				reward = +1
 			elif before_priority=="rl-default" and after_priority=="rl-priority":
 				reward = -1
 		elif self._numberOfCAVWithinClearingDistance[rl_agent] ==0:# and self._numberOfCAVApproachingIntersection[rl_agent]==0:
 			if before_priority=="rl-priority" and after_priority=="rl-default":
 				reward = -1
 			elif before_priority=="rl-priority" and after_priority=="rl-priority":
-				reward = +0
+				reward = +1
 			elif before_priority=="rl-default" and after_priority=="rl-default":
 				reward = -1
 			elif before_priority=="rl-default" and after_priority=="rl-priority":
-				reward = +0
+				reward = +1
 		
 		return reward
 	
@@ -527,11 +528,37 @@ class SUMOEnv(Env):
 	def set_sumo_seed(self, seed):
 		self._sumo_seed = seed
 
+
+	def getSplitVehiclesList(self,allvehicles):
+		rl_vehicleID = []
+		cav_vehicleID = []
+		heuristic_vehicleID = []
+		npc_vehicleID = []
+		haltVehicleCount=0
+		ratioOfHaltVehicle=0
+		total_vehicle_count = len(allvehicles)
+		for veh in allvehicles:
+			speed = self.traci.vehicle.getSpeed(veh)
+			if speed < 0.11:
+				haltVehicleCount+=1
+			x = veh.split("_",1)
+			if x[0] =="RL":
+				rl_vehicleID.append(veh)
+			elif x[0] == "cav":
+				cav_vehicleID.append(veh)
+			elif x[0] == "heuristic":
+				heuristic_vehicleID.append(veh)
+			elif x[0] == "npc":
+				npc_vehicleID.append(veh)
+		if total_vehicle_count>0:
+			ratioOfHaltVehicle = haltVehicleCount/total_vehicle_count
+		return npc_vehicleID,rl_vehicleID,heuristic_vehicleID,cav_vehicleID,ratioOfHaltVehicle
+
 	def collectObservation(self,lastTimeStepFlag):
 		#This function collects sum of time loss for all vehicles related to a in-concern RL agent. 
 		
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID= utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		if lastTimeStepFlag:
 			self._listOfVehicleIdsInConcern.clear()
@@ -596,7 +623,7 @@ class SUMOEnv(Env):
 	def collectObservationPerStep(self):
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle = self.getSplitVehiclesList(allVehicleList)
 		
 		avg_speed_heuristic=0;currentTimeLoss_Heuristic=0;currentWaitingTime_Heuristic=0
 		for heuristic_agent in self._heuristic_vehicleID:
@@ -731,7 +758,7 @@ class SUMOEnv(Env):
 			
 			self.collectObservation(True)		#Observation before taking an action - lastTimeStepFlag
 			self._set_action()			
-			print(simple_actions)
+			# print(simple_actions)
 			actionFlag = False
 		
 		
@@ -740,7 +767,7 @@ class SUMOEnv(Env):
 		vehicleCount = 0
 		while self._sumo_step <= self.action_steps:
 			# advance world state
-			self.collectObservationPerStep()
+			# self.collectObservationPerStep()
 			self.traci.simulationStep()
 			self._sumo_step +=1	
 			# self.collectObservation(False) ##Observation at each step till the end of the action step count (for reward computation) - lastTimeStepFlag lastTimeStepFlag
@@ -753,23 +780,26 @@ class SUMOEnv(Env):
 
 		self.collectObservation(False) #lastTimeStepFlag
 		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
-
-		if len(self._rl_vehicleID)!=self.n:
-			print("Total RL agent before loadState: " + str(len(self._rl_vehicleID)))
-			self.traci.simulation.loadState('sumo_configs/savedstate.xml')
-			print("Total RL agent After loadState: " + str(len(self._rl_vehicleID)))
+		
+		# if len(self._rl_vehicleID)!=self.n:
+		# 	print("Total RL agent before loadState: " + str(len(self._rl_vehicleID)))
+		# 	self.traci.simulation.loadState('sumo_configs/savedstate.xml')
+		# 	print("Total RL agent After loadState: " + str(len(self._rl_vehicleID)))
 			# self.keepRLAgentLooping()
 
 
 			
 		# allVehicleList = self.traci.vehicle.getIDList()
-		# self._npc_vehicleID,self._rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
+		# self._npc_vehicleID,self._rl_vehicleID = self.getSplitVehiclesList(allVehicleList)
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
 		
-		
-
+		if ratioOfHaltVehicle >0.75:
+			print("Reset the Episode")
+			for agent in self.agents:
+				agent.done= True
+       
 		for agent in self.agents:
 			obs_n.append(self._get_obs(agent))	
 			# print(self._get_obs(agent))		
@@ -792,9 +822,8 @@ class SUMOEnv(Env):
 	# set env action for a particular agent
 	def _set_action(self,time=None):
 		# process action
-		#index 0 = # give up the priority
+		#index 0 = # Toggle Priority
 		#index 1 = # do nothing
-		#index 2 = # ask for priority
 		self.setHeuristicAgentTogglePriority() # to simulate human decision-making
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
@@ -806,26 +835,24 @@ class SUMOEnv(Env):
 				if action == 0:
 					self.traci.vehicle.setType(agent_id,"rl-default")
 					
-					if self.edgeIdInternal(self.traci.vehicle.getLaneID(agent_id)) == False:
-						bestLanes = self.traci.vehicle.getBestLanes(agent_id)
-						if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
-							#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
-							self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
-						else:
-							self.traci.vehicle.changeLane(agent_id,1, self._laneChangeAttemptDuration)
+					# if self.edgeIdInternal(self.traci.vehicle.getLaneID(agent_id)) == False:
+					# 	bestLanes = self.traci.vehicle.getBestLanes(agent_id)
+					# 	self.traci.vehicle.changeLane(agent_id,1,self._laneChangeAttemptDuration) 
+						# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+						# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+						# 	self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
+						# else:
+						# 	self.traci.vehicle.changeLane(agent_id,1, self._laneChangeAttemptDuration)
 					# print("Priority Removed")
 				elif action == 1:
 					pass # do nothing
-				else:
-					pass # if action = 2. Still do nothing. It already has priority
 			else:
 				if action == 0:
-					pass # do nothing. It has no priority to give
+					self.traci.vehicle.setType(agent_id,"rl-priority")
+					# self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
 				elif action == 1:
 					pass # do nothing
-				else:
-					self.traci.vehicle.setType(agent_id,"rl-priority")
-					self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
+					
 	
 	def initSimulator(self,withGUI,portnum):
 		if withGUI:
