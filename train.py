@@ -31,13 +31,14 @@ wandb.init(
   mode=use_wandb
 )
 
-mode = False
+mode = True
+testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode)
+            env = SUMOEnv(mode=mode,testFlag=testFlag)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env

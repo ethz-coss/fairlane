@@ -27,12 +27,13 @@ from tqdm import tqdm
 import csv
 
 mode = False
+testFlag = True
 USE_CUDA = False  # torch.cuda.is_available()
 
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode)
+            env = SUMOEnv(mode=mode,testFlag=testFlag)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -61,6 +62,7 @@ def run(config):
     NUM_AGENTS = 50
     env = make_parallel_env(config.env_id, 1, config.seed, config.discrete_action)
 
+    # env.set_Testing(True)
     maddpg = MADDPG.init_from_save(run_dir)
     maddpg = sample_agents(maddpg, NUM_AGENTS)
     assert maddpg.nagents==env.envs[0].n
@@ -126,7 +128,7 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run6", type=str) # runXX is performing the best on training data
+    parser.add_argument("--run_id", default="run9", type=str) # runXX is performing the best on training data
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
@@ -136,7 +138,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1, type=int)
-    parser.add_argument("--episode_length", default=40, type=int)
+    parser.add_argument("--episode_length", default=130, type=int)
     parser.add_argument("--steps_per_update", default=10, type=int)
     parser.add_argument("--batch_size",
                         default=64, type=int,

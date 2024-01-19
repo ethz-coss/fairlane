@@ -30,14 +30,20 @@ class SUMOEnv(Env):
 	
 	def __init__(self,reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
-                 done_callback=None, shared_viewer=True,mode='gui',simulation_end=36000):
+                 done_callback=None, shared_viewer=True,mode='gui',testFlag='False',simulation_end=36000):
 		self.pid = os.getpid()
 		self.sumoCMD = []
 		self._simulation_end = simulation_end
 		self._mode = mode
-		self._networkFileName = "sumo_configs/Grid1.net.xml"
-		self._routeFileName = "sumo_configs/routes.rou.xml"
+		if testFlag == False:
+			self._networkFileName = "sumo_configs/Grid1.net.xml"
+			self._routeFileName = "sumo_configs/routes.rou.xml"
+		else:
+			self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
+			self._routeFileName = "sumo_configs/LargeTestNetwork.rou.xml"   
+
 		self._episodeStep = 0
+		self._isTestFlag = testFlag
 		# self._seed(40)
 		# np.random.seed(42)
 		self._sumo_seed = 42
@@ -116,7 +122,7 @@ class SUMOEnv(Env):
 		# configure spaces
 		# self._num_observation = [len(self.getState(f'RL_{i}')) for i in range(self.n)]
 		# self._num_observation = [6,6]
-		self._num_observation = 5
+		self._num_observation = 7
 		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
 		# self._num_observation = [len(Agent(self, i, self.edge_agents[0]).getState()) for i in range(self._num_lane_agents)]*len(self.edge_agents)
@@ -207,12 +213,26 @@ class SUMOEnv(Env):
 		else:
 			itsPriorityAccess = 0
 		# print(self._sumo_step)
+		rlObs=0;cavObs=0
+		if len(self._currentRLWaitingTimeForSpecificRLAgent)>0:
+			if self._currentRLWaitingTimeForSpecificRLAgent[agent_id] - self._lastRLWaitingTimeForSpecificRLAgent[agent_id] > 0:
+				rlObs = 0
+			else:
+				rlObs = 1
+	
+			if self._currentCAVWaitingTimeForSpecificRLAgent[agent_id] - self._lastCAVWaitingTimeForSpecificRLAgent[agent_id]>0:
+				cavObs = 0
+			else:
+				cavObs = 1
+   
 		# state = [itsOwnTImeLoss/self.action_steps,itsPriorityAccess,priorityVehicleCount/normalization_totalNumberOfVehicle,nonPriorityVehicleCount/normalization_totalNumberOfVehicle,accumulated_time_loss/self.action_steps,cavCount/normalization_totalNumberOfCAV,all_cav_count/normalization_totalNumberOfVehicle]
 		state = [itsPriorityAccess,
 		   priorityVehicleCount/normalization_totalNumberOfVehicle,
 		   nonPriorityVehicleCount/normalization_totalNumberOfVehicle,
 		   cavCount/normalization_totalNumberOfCAV,
-		   all_cav_count/normalization_totalNumberOfVehicle]
+		   all_cav_count/normalization_totalNumberOfVehicle,
+     	   rlObs,
+           cavObs]
 		# if agent_id == "RL_1":
 		# 	print(state)
 		return np.array(state)
@@ -477,19 +497,19 @@ class SUMOEnv(Env):
 	
 	def computeCAVAccumulatedWaitingTime(self,rl_agent):
 		if self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] > 0:
-			cav_delay = (self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]
+			cav_delay = -(self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]
 		# print(-cav_delay)
 		else:
-			cav_delay = 0
-		return -cav_delay
+			cav_delay = +1
+		return cav_delay
 	
 	def computeRLAccumulatedWaitingTime(self,rl_agent):
 		if self._currentRLWaitingTimeForSpecificRLAgent[rl_agent] > 0:
-			rl_delay = (self._currentRLWaitingTimeForSpecificRLAgent[rl_agent] - self._lastRLWaitingTimeForSpecificRLAgent[rl_agent])/self._currentRLWaitingTimeForSpecificRLAgent[rl_agent]
+			rl_delay = -(self._currentRLWaitingTimeForSpecificRLAgent[rl_agent] - self._lastRLWaitingTimeForSpecificRLAgent[rl_agent])/self._currentRLWaitingTimeForSpecificRLAgent[rl_agent]
 		else:
-			rl_delay = 0
+			rl_delay = +1
 		# print(-rl_delay)
-		return -rl_delay
+		return rl_delay
 
 
 	# get reward for a particular agent
@@ -499,14 +519,14 @@ class SUMOEnv(Env):
 		if len(self.lastActionDict) !=0:				
 			# reward_cooperative = self.computeCooperativeReward(agent_id)
 			# reward_overallNetwork = self.computeOverallNetworkReward(agent_id)
-			# reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
-			# reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
+			reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
+			reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
 			reward_cav_priority = self.computeCAVReward(agent_id)
 			# overall_reward = reward_cooperative + reward_overallNetwork + reward_cav_priority
 			# overall_reward = reward_cav_priority
 			# print(overall_reward)		
-			# overall_reward = reward_cav_priority + reward_RLWaitingTime + reward_cavWaitingTime
-			overall_reward = reward_cav_priority
+			overall_reward = reward_cav_priority + reward_RLWaitingTime + reward_cavWaitingTime
+			# overall_reward = reward_cav_priority
 
 		return overall_reward
 		
@@ -530,6 +550,9 @@ class SUMOEnv(Env):
 		self._sumo_seed = seed
 
 
+	def set_Testing(self,flag):
+		self._isTestFlag = flag
+    
 	def getSplitVehiclesList(self,allvehicles):
 		rl_vehicleID = []
 		cav_vehicleID = []
@@ -795,11 +818,11 @@ class SUMOEnv(Env):
 		# allVehicleList = self.traci.vehicle.getIDList()
 		# self._npc_vehicleID,self._rl_vehicleID = self.getSplitVehiclesList(allVehicleList)
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
-		
-		if ratioOfHaltVehicle >0.75:
-			print("Reset the Episode")
-			for agent in self.agents:
-				agent.done= True
+		if self._isTestFlag==False:
+			if ratioOfHaltVehicle >0.75:
+				print("Reset the Episode")
+				for agent in self.agents:
+					agent.done= True
        
 		for agent in self.agents:
 			obs_n.append(self._get_obs(agent))	
@@ -829,7 +852,7 @@ class SUMOEnv(Env):
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
 			action = self.lastActionDict[agent_id]
-			action = 1
+			# action = 1
 			# if action==2:
 			# 	print(action)
 			if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
@@ -864,7 +887,13 @@ class SUMOEnv(Env):
 			except:
 				import traci
 		seed = self._sumo_seed
-		self._networkFileName = "sumo_configs/Grid1.net.xml"
+		if self._isTestFlag == False:
+			self._networkFileName = "sumo_configs/Grid1.net.xml"
+			sumoConfig = "sumo_configs/sim.sumocfg"
+		else:
+			self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
+			sumoConfig = "sumo_configs/LargeTestNetwork.sumocfg"
+   
 		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(3600),"--time-to-teleport", str(-1),
 				 "--no-step-log","--statistic-output","output.xml"]
    
@@ -878,7 +907,7 @@ class SUMOEnv(Env):
 			sumoBinary = checkBinary('sumo')
 
 		# print(sumoBinary)
-		sumoConfig = "sumo_configs/sim.sumocfg"
+		# sumoConfig = "sumo_configs/sim.sumocfg"
 		self.sumoCMD = ["-c", sumoConfig] + self.sumoCMD
 
 

@@ -1,0 +1,8 @@
+<configuration>
+    <input>
+		<additional-files value="LargeTestNetwork_loopDetectors.add.xml,LargeTestNetwork_busStop.add.xml"/>
+		<net-file value="LargeTestNetwork.net.xml"/>
+        <route-files value="LargeTestNetwork.rou.xml"/>
+    </input>
+ </configuration>
+
