@@ -43,14 +43,14 @@
 	<!-- <vType id="passenger-priority" vClass="passenger" length="5" maxSpeed="70" color="210,105,30"/>
 	<vType id="cav-priority" vClass="custom1" length="5" maxSpeed="70" color="white"/>
     <vType id="rl-priority" vClass="passenger" length="5" maxSpeed="70" color="red"/>
-	<vType id="heuristic-priority" vClass="passenger" sigma="0.5" length="5" maxSpeed="70" color="128,0,128"/>
+	<vType id="heuristic-priority" vClass="passenger" length="5" maxSpeed="70" color="128,0,128"/>
 
     <vType id="passenger-default" vClass="passenger" length="5" maxSpeed="70" color="yellow"/>
     <vType id="rl-default" vClass="passenger" length="5" maxSpeed="70" color="green"/>
 	<vType id="heuristic-default" vClass="passenger" length="5" maxSpeed="70" color="blue"/> -->
 	
 	<!-- Baseline 2 configurations -->
-	<vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
+	<!-- <vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
 	<vType id="cav-priority" vClass="custom1" length="5" maxSpeed="70" color="white"/>
     <vType id="rl-priority" vClass="custom2" length="5" maxSpeed="70" color="red"/>
 	<vType id="heuristic-priority" vClass="custom2" length="5" maxSpeed="70" color="128,0,128"/>
@@ -58,18 +58,33 @@
     <vType id="passenger-default" vClass="custom2" length="5" maxSpeed="70" color="yellow"/>
     <vType id="rl-default" vClass="custom2" length="5" maxSpeed="70" color="green"/>
 	<vType id="heuristic-default" vClass="custom2" length="5" maxSpeed="70" color="blue"/>
-	
+	 -->
 	<!-- Test configurations -->
-	<!-- <vType id="passenger-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="210,105,30"/>
-	<vType id="cav-priority" vClass="custom1" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="white"/>
-    <vType id="rl-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="red"/>
-	<vType id="heuristic-priority" vClass="custom2" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="70" color="128,0,128"/>
+	<vType id="passenger-priority" vClass="custom2" length="5" maxSpeed="70" color="210,105,30"/>
+	<vType id="cav-priority" vClass="custom1" length="5" maxSpeed="70" color="white"/>
+    <vType id="rl-priority" vClass="custom2" length="5" maxSpeed="70" color="red"/>
+	<vType id="heuristic-priority" vClass="custom2" length="5" maxSpeed="70" color="128,0,128"/>
 
-    <vType id="passenger-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="yellow"/>
-    <vType id="rl-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="green"/>
-	<vType id="heuristic-default" vClass="passenger" lcLaneDiscipline="1" accel="0.8" decel="4.5" sigma="0.5" length="5" maxSpeed="50" color="blue"/> -->
+    <vType id="passenger-default" vClass="passenger" length="5" maxSpeed="70" color="yellow"/>
+    <vType id="rl-default" vClass="passenger" length="5" maxSpeed="70" color="green"/>
+	<vType id="heuristic-default" vClass="passenger" length="5" maxSpeed="70" color="blue"/>
+
+	<!-- <vType id="bus" vClass="custom1"/>
 	
 
+	<route id="107" color="0.8901960784313725,0.4666666666666667,0.7607843137254902" edges="-1201 -1027 -698 -11 9 19 123 338 505 597 686">
+		<stop busStop="1" duration="30"/>
+		<stop busStop="65" duration="30"/>
+		<stop busStop="4" duration="30"/>
+		<stop busStop="140" duration="30"/>
+		<stop busStop="104" duration="30"/>
+		<stop busStop="79" duration="30"/>
+		<stop busStop="113" duration="30"/>
+		<stop busStop="120" duration="30"/>
+		<stop busStop="128" duration="30"/>
+	</route>
+	
+	<vehicle id="bl107b1:1" type="bus" depart="600.00" departPos="159.00" arrivalPos="103.00" arrivalSpeed="0.00" route="107"/> -->
 
 	<vehicle id="RL_0" type="rl-priority" depart="0.0">
 		<route edges="-1093 -1029 870 -679 333 -138 126 -570 -379 -344 -125 121 326 -313 325 588 -517 -338 -123 -19 -9 11 728 1029 -1005 1011 -1342 -1093 -1029 -728 -11 7 679 -696 -11 9 19 123 338 523 -1415 -1357 1494 -1447 -1427 1429 1517 1783 -1883 -1526 -1431 -1373 1363 1427 1431 1524 1533 1535 -1359 1363 1427 -1373 -1323 -1033 -734 -625 -319 -38 -17 -9 11 728 1029 -1005 -612 608 -614 613 -601 -535 569 1391 -1388 -533 -365 -344 -570 -379 -349 -210 126 344 -349 -210 -25 17 38 319 623 730 876 -1535 -1494 -880 882 -1033 -734 -625 -319 -38 -17 25 138 -333 679 -870 -728 696 -679 333 -138 210 -381 -128 -25 19 123 338 523 -1415 -1357 1494 -1447 -1427 1429 1499 1771 -1775 1773 -1798 -1523 -1429 -1363 -1323 -1033 -734 -625 -319 -38 -17 -9 11 728 1029 1093 1343 -1199 -1027 -698 696 -679 333 -138 210 -381 -128 -25 19 123 338 523 -1415 -1357 1494 -1447 -1427 1429 1501 1775 -1771 -1499 1523 -1774 -1501 -1429 -1363 -1323 -1033 -734 -625 -319 -38 -13 15 117 313 -326 -121 125 344 -349 -210 126 344 -349 -210 -25 17 64 -121 -19 -9 11 728 1029 1093 1342 -1011 1005 -1029 870 -679 333 -138 126 -570 -379 -344 -125 121 326 -313 325 588 -517 -338 -123 -19 17 64 -121 125 344 365 535 601 -585 -210 -25 17 116 -313 -117 119 332 592 674 -837 -330 -119 117 313 -326 -121 125 344 -349 -381 -128 210 585 -613 614 -608 612 1005 -1029 870 -679 333 -138 210 -381 -128 -25 17 38 319 623 730 876 -1535 -1494 1357 1415 -523 -338 -123 -19 17 64 -121 125 -126 -25 19 123 336 361 492 570 -126 -25 17 64 -121 -19 -9 11 728 1029 1093 1343 -1199 -1027 -698 696 -679 333 -138 128 383 577 612 1005 -1029 -728 -11 7 679 -696 698 1027 1199 -1343 1342 -1011 -612 608 -614 613 -585 -210 -25 17 116 -326 -64 -13 15 117 -38 -17 -9 3 15 117 313 -116 38 319 639 -730 -623 639 880 1357 1415 -523 -338 -123 -19 17 64 -121 125 -126 138 -333 356 -348 -333 -7 3 15 119 330 -732 -625 623 730 876 -1535 -1494 -880 882 -1033 -734 -625 -319 -38 -17 25 138 -333 -7 9 19 125 344 -349 -381 -128 210 -381 -128 -25 19 123 338 523 -1415 -1357 1494 -1447 1431 1524 -1441 1431 1524 1533 1535 -876 882 -1033 -734 -625 -319 -38 -13 15 117 313 -326 -121 125 -126 -25 17 38 319 623 730 876 -1535 -1494 -880 882 1323 1363 1427 -1373 -1323 -1033 -734 -625 623 730 876 -1535 -1494 -880 882 1323 1363 1429 1501 1775 -1771 -1499 1523 1798 -1773 1774" />
