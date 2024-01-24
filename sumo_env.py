@@ -23,7 +23,7 @@ class Agent:
         self.env = env
 
         self.id = n_agent
-        self.name = f'agent {self.id}'
+        self.name = f'RL_{self.id}'
 
 class SUMOEnv(Env):
 	metadata = {'render.modes': ['human', 'rgb_array','state_pixels']}
@@ -47,9 +47,11 @@ class SUMOEnv(Env):
 		# self._seed(40)
 		# np.random.seed(42)
 		self._sumo_seed = 42
+		self._reward_type = "Global" 
+		# self._reward_type = "Local" 
 		self.withGUI = mode
 		self.action_steps = 30	
-		self._warmup_steps = 299
+		self._warmup_steps = 599
 		self.traci = self.initSimulator(self.withGUI, self.pid)
 		self._sumo_step = 0		
 		self.shared_reward = True
@@ -65,7 +67,7 @@ class SUMOEnv(Env):
 		self._timeLossOriginalDict = {}
 		self._net = sumolib.net.readNet(self._networkFileName,withInternal=True)
 		# set required vectorized gym env property
-		self.n = 25
+		self.n = 50 #read it from the route file
 		self.lastActionDict = {}
 		self.lastTimeLossRLAgents = {}
 		self._lastOverAllTimeLoss = {}
@@ -81,10 +83,14 @@ class SUMOEnv(Env):
 		self._numberOfCAVApproachingIntersection = {}
 		self._beforePriorityForRLAgent = {}
 		self._afterPriorityForRLAgent = {}
+		self._listOfLocalRLAgents = {}
 		self._releventEdgeId = []
 		self._timeLossThreshold = 60
 		self._lane_clearing_distance_threshold = 30
 		self._laneChangeAttemptDuration = 25 #seconds
+		self._weightCAVPriority = 3
+		self._weightRLWeightingTime = 1
+		self._weightCAVWeightingTime = 2
 
 		#test stats
 		self._currentTimeLoss_rl = 0
@@ -179,9 +185,11 @@ class SUMOEnv(Env):
 		# nextIncomingEdges = self._net.getEdge(edge_id).getIncoming()
 		# edge_list_incoming = [e.getID() for e in nextIncomingEdges] # list of all edges excluding internal
 		priorityVehicleCount = 0
+		localRLVehicleCount = 0
 		nonPriorityVehicleCount = 0
 		# total_waiting_time = 0
 		accumulated_time_loss = 0
+		localRLAgentList = []
 		normalization_totalNumberOfVehicle = 50
 		normalization_totalNumberOfCAV = 20
 		elapsed_simulation_time = self.traci.simulation.getTime()
@@ -196,6 +204,9 @@ class SUMOEnv(Env):
 				priority_type = self.traci.vehicle.getTypeID(veh)
 				if priority_type=="passenger-priority" or priority_type=="rl-priority" or priority_type=="cav-priority" or priority_type=="heuristic-priority":
 					priorityVehicleCount+=1
+					if priority_type=="rl-priority":
+						localRLVehicleCount+=1
+						localRLAgentList.append(veh)
 					if priority_type=="cav-priority":
 						cav_lane_position = self.traci.vehicle.getLanePosition(veh)
 						diff = agent_lane_pos - cav_lane_position
@@ -203,7 +214,7 @@ class SUMOEnv(Env):
 							all_cav_count+=1
 				else:
 					nonPriorityVehicleCount+=1
-			
+		self._listOfLocalRLAgents[agent_id] = localRLAgentList	
 		self._numberOfCAVApproachingIntersection[agent_id] = all_cav_count
 		elapsed_its_own_time = self.traci.vehicle.getDeparture(agent_id)	
 		itsOwnTImeLoss = self.traci.vehicle.getTimeLoss(agent_id) / (elapsed_simulation_time - elapsed_its_own_time)
@@ -227,12 +238,22 @@ class SUMOEnv(Env):
    
 		# state = [itsOwnTImeLoss/self.action_steps,itsPriorityAccess,priorityVehicleCount/normalization_totalNumberOfVehicle,nonPriorityVehicleCount/normalization_totalNumberOfVehicle,accumulated_time_loss/self.action_steps,cavCount/normalization_totalNumberOfCAV,all_cav_count/normalization_totalNumberOfVehicle]
 		state = [itsPriorityAccess,
-		   priorityVehicleCount/normalization_totalNumberOfVehicle,
+		   localRLVehicleCount/self.n,
 		   nonPriorityVehicleCount/normalization_totalNumberOfVehicle,
 		   cavCount/normalization_totalNumberOfCAV,
 		   all_cav_count/normalization_totalNumberOfVehicle,
      	   rlObs,
-           cavObs]
+           cavObs,
+           ]
+		# state = [itsPriorityAccess,
+		#    localRLVehicleCount/self.n,
+		#    nonPriorityVehicleCount/normalization_totalNumberOfVehicle,
+		#    cavCount/normalization_totalNumberOfCAV,
+		#    all_cav_count/normalization_totalNumberOfVehicle,
+     	#    rlObs,
+        #    cavObs]
+           
+          
 		# if agent_id == "RL_1":
 		# 	print(state)
 		return np.array(state)
@@ -287,6 +308,7 @@ class SUMOEnv(Env):
 		self._lastCAVWaitingTimeForSpecificRLAgent.clear()
 		self._currentRLWaitingTimeForSpecificRLAgent.clear()
 		self._lastRLWaitingTimeForSpecificRLAgent.clear()
+		self._listOfLocalRLAgents.clear()
 		self._currentTimeLoss_rl = 0
 		self._currentTimeLoss_npc = 0
 		self._currentTimeLoss_cav = 0
@@ -525,8 +547,9 @@ class SUMOEnv(Env):
 			# overall_reward = reward_cooperative + reward_overallNetwork + reward_cav_priority
 			# overall_reward = reward_cav_priority
 			# print(overall_reward)		
-			overall_reward = reward_cav_priority + reward_RLWaitingTime + reward_cavWaitingTime
+			overall_reward = self._weightCAVPriority*reward_cav_priority + self._weightRLWeightingTime*reward_RLWaitingTime + self._weightCAVWeightingTime*reward_cavWaitingTime
 			# overall_reward = reward_cav_priority
+
 
 		return overall_reward
 		
@@ -631,12 +654,13 @@ class SUMOEnv(Env):
 				total_waiting_time_cav=0
 				self._afterPriorityForRLAgent[rl_agent] = self.traci.vehicle.getTypeID(rl_agent)
 				for veh in self._listOfVehicleIdsInConcern[rl_agent]:
-					elapsed_vehicle_time = self.traci.vehicle.getDeparture(veh)
-					accumulated_time_loss+=self.traci.vehicle.getTimeLoss(veh)/(elapsed_simulation_time - elapsed_vehicle_time)
-					total_waiting_time+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
-					priority_type = self.traci.vehicle.getTypeID(veh)
-					if priority_type=="cav-priority": 
-						total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+					if veh in allVehicleList:
+						elapsed_vehicle_time = self.traci.vehicle.getDeparture(veh)
+						accumulated_time_loss+=self.traci.vehicle.getTimeLoss(veh)/(elapsed_simulation_time - elapsed_vehicle_time)
+						total_waiting_time+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+						priority_type = self.traci.vehicle.getTypeID(veh)
+						if priority_type=="cav-priority": 
+							total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
 
 				self._currentRLWaitingTimeForSpecificRLAgent[rl_agent] = self.traci.vehicle.getAccumulatedWaitingTime(rl_agent)
 				# print("Current Waiting Time for RL = ",self._currentRLWaitingTimeForSpecificRLAgent[rl_agent])
@@ -764,6 +788,7 @@ class SUMOEnv(Env):
 		print("--------Inside STEP-----------")
 		obs_n = []
 		reward_n = []
+		newReward_n = []
 		done_n = []
 		info_n = {'n':[]}
 		actionFlag = True
@@ -791,7 +816,7 @@ class SUMOEnv(Env):
 		vehicleCount = 0
 		while self._sumo_step <= self.action_steps:
 			# advance world state
-			self.collectObservationPerStep()
+			# self.collectObservationPerStep()
 			self.traci.simulationStep()
 			self._sumo_step +=1	
 			# self.collectObservation(False) ##Observation at each step till the end of the action step count (for reward computation) - lastTimeStepFlag lastTimeStepFlag
@@ -818,11 +843,13 @@ class SUMOEnv(Env):
 		# allVehicleList = self.traci.vehicle.getIDList()
 		# self._npc_vehicleID,self._rl_vehicleID = self.getSplitVehiclesList(allVehicleList)
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
-		if self._isTestFlag==False:
-			if ratioOfHaltVehicle >0.75:
-				print("Reset the Episode")
-				for agent in self.agents:
-					agent.done= True
+  
+  
+		# if self._isTestFlag==False:
+		# 	if ratioOfHaltVehicle >0.90:
+		# 		print("Reset the Episode")
+		# 		for agent in self.agents:
+		# 			agent.done= True
        
 		for agent in self.agents:
 			obs_n.append(self._get_obs(agent))	
@@ -833,15 +860,31 @@ class SUMOEnv(Env):
 
 			info_n['n'].append(self._get_info(agent))
 
-		self._currentReward = reward_n
-		reward = np.sum(reward_n)
-		if self.shared_reward:
-			reward_n = [reward] *self.n
+		if self._reward_type == "Global":
+			self._currentReward = reward_n
+			reward = np.sum(reward_n)/self.n
+			newReward_n = [reward] *self.n
+		else:
+			#find sum of all local agent reward including the one in concern
+			for agent in self.agents:
+				agentReward = reward_n[agent.id]
+				agentList = self._listOfLocalRLAgents[agent.name]
+				reward = 0
+				for ag in agentList:
+					id = int(ag.split("_")[1])
+					reward +=reward_n[id]
+				
+				if len(agentList)>0:
+					finalReward = (agentReward+reward)/len(agentList)
+				else:
+					finalReward = agentReward
+				newReward_n.append(finalReward)
+   
 		# print("Reward = " + str(reward_n))
 		# self._lastReward = reward_n[0]
 		# # print("reward: " + str(self._lastReward))
 		# print(reward_n)
-		return obs_n, reward_n, done_n, info_n
+		return obs_n, newReward_n, done_n, info_n
 
 	# set env action for a particular agent
 	def _set_action(self,time=None):
@@ -854,7 +897,7 @@ class SUMOEnv(Env):
 			action = self.lastActionDict[agent_id]
 			# action = 1
 			# if action==2:
-			# 	print(action)
+			# print(action)
 			if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
 				if action == 0:
 					self.traci.vehicle.setType(agent_id,"rl-default")

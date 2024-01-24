@@ -31,8 +31,8 @@ wandb.init(
   mode=use_wandb
 )
 
-mode = True
-testFlag = False
+mode = False
+testFlag = True
 USE_CUDA = False  # torch.cuda.is_available()
 
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
@@ -181,8 +181,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=5000, type=int)
-    parser.add_argument("--episode_length", default=40, type=int)
+    parser.add_argument("--n_episodes", default=10000, type=int)
+    parser.add_argument("--episode_length", default=120, type=int)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
                         default=1024, type=int,
