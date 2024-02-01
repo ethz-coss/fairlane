@@ -1,0 +1,7 @@
+<configuration>
+    <input>
+		<net-file value="LargeTestNetwork.net.xml"/>
+        <route-files value="LTN_Density1_CAV20.rou.xml"/>
+    </input>
+ </configuration>
+
