@@ -806,13 +806,6 @@ class SUMOEnv(Env):
 		if len(all_LD) > 0:
 			self._average_throughput += throughput/len(all_LD)
 
-		#throughput computation using loop detector
-		throughput = 0
-		all_LD = self.traci.inductionloop.getIDList()
-		for ld in all_LD:
-			throughput += self.traci.inductionloop.getLastStepVehicleNumber(ld)
-		if len(all_LD) > 0:
-			self._average_throughput += throughput/len(all_LD)
 			
 		# for rl_agent in self._rl_vehicleID:
 		# 	total_waiting_time = 0
