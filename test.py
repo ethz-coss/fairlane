@@ -72,13 +72,14 @@ def run(config):
     smoothed_total_reward = 0
     pid = os.getpid()
     # testResultFilePath = f"results/Run18_Density1_CAV20.csv" 
-    testResultFilePath = f"results/Debugging.csv" 
+    testResultFilePath = f"results/Run18_Density1_1-2CAV20.csv" 
     # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
         written_headers = False
 
-        for seed in list(range(42,43)): # realizations for averaging - 47
+        for seed in list(range(1,3)): # realizations for averaging - 47
+            # seed = 2
             env.set_sumo_seed(seed)
             for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
                 total_reward = 0
@@ -133,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
-                        default=42, type=int,
+                        default=1, type=int,
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)

@@ -857,7 +857,7 @@ class SUMOEnv(Env):
 			# values = [avg_delay_RL, avg_speed_RL, avg_delay_NPC,avg_speed_NPC,avg_occupancy_network,avg_PMx_emission]
 			# headers = ['avg_delay_CAV','avg_delay_RL','avg_delay_NPC','avg_delay_Heuristic','avg_speed_CAV','avg_speed_NPC','avg_speed_RL','avg_speed_Heuristic','avg_delay_ALL','avg_speed_AllButCAV','congestion(avg_occupancy_priorityLane)','avg_PMx_emission','Episode_Step']
 			# values = [avg_delay_CAV,avg_delay_RL,avg_delay_NPC,avg_delay_Heuristic,avg_speed_CAV,avg_speed_NPC,avg_speed_RL,avg_speed_Heuristic,avg_delay_ALLButCAV,avg_speed_AllButCAV,avg_occupancy_priorityLane,avg_PMx_emission,self._episodeStep]
-			headers = ['avg_delay_CAV','avg_delay_RL','avg_speed_CAV','avg_speed_RL','congestion(avg_occupancy_priorityLane)','avg_PMx_emission','Episode_Step']
+			headers = ['avg_delay_CAV','avg_delay_RL','avg_speed_CAV','avg_speed_RL','throughput','avg_PMx_emission','Episode_Step']
 			values = [avg_delay_CAV,avg_delay_RL,avg_speed_CAV,avg_speed_RL,avg_throughput,avg_PMx_emission,self._episodeStep-1]
 			
 			self._currentTimeLoss_cav=0;self._avg_speed_cav=0;self._currentTimeLoss_rl=0;self._avg_speed_rl=0;self._currentTimeLoss_npc=0;self._avg_speed_npc=0

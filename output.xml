@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2024-02-01 12:43:11 by Eclipse SUMO libsumo Version 1.19.0
+<!-- generated on 2024-02-01 14:44:16 by Eclipse SUMO libsumo Version 1.19.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/libsumoConfiguration.xsd">
 
     <input>
@@ -24,7 +24,10 @@
     </report>
 
     <random_number>
-        <seed value="42"/>
+        <seed value="2"/>
     </random_number>
 
 </configuration>
+-->
+
+<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
