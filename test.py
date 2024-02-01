@@ -71,7 +71,7 @@ def run(config):
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
-    testResultFilePath = f"results/Model_Run10.csv" 
+    testResultFilePath = f"results/Model_Run14.csv" 
     # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
@@ -128,8 +128,8 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run10", type=str) # runXX is performing the best on training data
-    parser.add_argument("--model_id", default="/model.pt", type=str)
+    parser.add_argument("--run_id", default="run14", type=str) # runXX is performing the best on training data
+    parser.add_argument("--model_id", default="/model_ep2731.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
                         default=42, type=int,

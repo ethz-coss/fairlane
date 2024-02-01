@@ -40,7 +40,7 @@ class SUMOEnv(Env):
 			self._routeFileName = "sumo_configs/routes.rou.xml"
 		else:
 			self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
-			self._routeFileName = "sumo_configs/LargeTestNetwork.rou.xml"   
+			self._routeFileName = "sumo_configs/LTN_Density1_CAV20.rou.xml"   
 
 		self._episodeStep = 0
 		self._isTestFlag = testFlag
@@ -67,7 +67,7 @@ class SUMOEnv(Env):
 		self._timeLossOriginalDict = {}
 		self._net = sumolib.net.readNet(self._networkFileName,withInternal=True)
 		# set required vectorized gym env property
-		self.n = 50 #read it from the route file
+		self.n = 229 #read it from the route file
 		self.lastActionDict = {}
 		self.lastTimeLossRLAgents = {}
 		self._lastOverAllTimeLoss = {}
@@ -87,11 +87,12 @@ class SUMOEnv(Env):
 		self._releventEdgeId = []
 		self._timeLossThreshold = 60
 		self._lane_clearing_distance_threshold = 30
+		self._lane_clearing_distance_threshold_RL = 5
 		self._laneChangeAttemptDuration = 25 #seconds
-		self._weightCAVPriority = 3
+		self._weightCAVPriority = 1 #3
 		self._weightRLWeightingTime = 1
-		self._weightCAVWeightingTime = 2
-
+		self._weightCAVWeightingTime = 1 #2
+		self._average_throughput = 0
 		#test stats
 		self._currentTimeLoss_rl = 0
 		self._currentTimeLoss_npc = 0
@@ -128,7 +129,7 @@ class SUMOEnv(Env):
 		# configure spaces
 		# self._num_observation = [len(self.getState(f'RL_{i}')) for i in range(self.n)]
 		# self._num_observation = [6,6]
-		self._num_observation = 7
+		self._num_observation = 10
 		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
 		# self._num_observation = [len(Agent(self, i, self.edge_agents[0]).getState()) for i in range(self._num_lane_agents)]*len(self.edge_agents)
@@ -158,6 +159,8 @@ class SUMOEnv(Env):
 		# print(agent_id)
 		#Get the edgeID on which the RL agent is:
 		edge_id = self.traci.vehicle.getRoadID(agent_id)
+		lane_id = self.traci.vehicle.getLaneID(agent_id)			
+		priorityLane_id = edge_id + "_0"
 		# print(edge_id,agent_id)
 		nextNodeID = self._net.getEdge(edge_id).getToNode().getID() # gives the intersection/junction ID
 		# now found the edges that is incoming to this junction
@@ -172,10 +175,20 @@ class SUMOEnv(Env):
 			if priority_type=="cav-priority":
 				cav_lane_position = self.traci.vehicle.getLanePosition(cav)
 				diff = agent_lane_pos - cav_lane_position
-				if diff<= self._lane_clearing_distance_threshold:
+				if diff<= self._lane_clearing_distance_threshold and diff > 0:
 					cavCount+=1
 
 		self._numberOfCAVWithinClearingDistance[agent_id] = cavCount
+
+		#find next edge in the route for the RL agent
+		list = self.traci.vehicle.getNextLinks(agent_id)
+		nextLane = list[0][0]
+		nextPriorityLane_id = nextLane.split("_")[0] + "_0"
+		#check occupancy of that lane
+		occupancyNextLane = self.traci.lane.getLastStepOccupancy(nextLane)
+		occupancyCurrentLane = self.traci.lane.getLastStepOccupancy(lane_id)
+		occupancyCurrentPriorityLane = self.traci.lane.getLastStepOccupancy(priorityLane_id)
+		occupancyNextPriorityLane = self.traci.lane.getLastStepOccupancy(nextPriorityLane_id)
 
 		# # print(edge_id)
 		# #Get the intersection the RL agent is going towards:
@@ -190,8 +203,8 @@ class SUMOEnv(Env):
 		# total_waiting_time = 0
 		accumulated_time_loss = 0
 		localRLAgentList = []
-		normalization_totalNumberOfVehicle = 50
-		normalization_totalNumberOfCAV = 20
+		normalization_totalNumberOfVehicle = 100
+		normalization_totalNumberOfCAV = 50
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
 		all_cav_count = 0
@@ -210,7 +223,7 @@ class SUMOEnv(Env):
 					if priority_type=="cav-priority":
 						cav_lane_position = self.traci.vehicle.getLanePosition(veh)
 						diff = agent_lane_pos - cav_lane_position
-						if diff <=self._lane_clearing_distance_threshold:
+						if diff <=self._lane_clearing_distance_threshold and diff>0:
 							all_cav_count+=1
 				else:
 					nonPriorityVehicleCount+=1
@@ -220,7 +233,7 @@ class SUMOEnv(Env):
 		itsOwnTImeLoss = self.traci.vehicle.getTimeLoss(agent_id) / (elapsed_simulation_time - elapsed_its_own_time)
 		# self.lastTimeLoss[agent_id] = itsOwnTImeLoss
 		if self.traci.vehicle.getTypeID(agent_id)=="rl-priority":
-			itsPriorityAccess = 1
+			itsPriorityAccess = 1			
 		else:
 			itsPriorityAccess = 0
 		# print(self._sumo_step)
@@ -235,15 +248,18 @@ class SUMOEnv(Env):
 				cavObs = 0
 			else:
 				cavObs = 1
-   
+		lane_index = int(lane_id.split("_")[1])
 		# state = [itsOwnTImeLoss/self.action_steps,itsPriorityAccess,priorityVehicleCount/normalization_totalNumberOfVehicle,nonPriorityVehicleCount/normalization_totalNumberOfVehicle,accumulated_time_loss/self.action_steps,cavCount/normalization_totalNumberOfCAV,all_cav_count/normalization_totalNumberOfVehicle]
 		state = [itsPriorityAccess,
+		   lane_index/2,
+		   occupancyCurrentLane,
+		   occupancyCurrentPriorityLane,
+		   occupancyNextLane,
+		   occupancyNextPriorityLane,
 		   localRLVehicleCount/self.n,
 		   nonPriorityVehicleCount/normalization_totalNumberOfVehicle,
 		   cavCount/normalization_totalNumberOfCAV,
-		   all_cav_count/normalization_totalNumberOfVehicle,
-     	   rlObs,
-           cavObs,
+		   all_cav_count/normalization_totalNumberOfVehicle
            ]
 		# state = [itsPriorityAccess,
 		#    localRLVehicleCount/self.n,
@@ -322,6 +338,7 @@ class SUMOEnv(Env):
 		self._average_priorityLane_occupancy = 0
 		self._average_PMx_emission = 0
 		self._episodeStep = 0	
+		self._average_throughput = 0
 
 		# self._npc_vehicleID=0
 		# self._rl_vehicleID=0
@@ -388,6 +405,62 @@ class SUMOEnv(Env):
 
 		# print("PtoD change =",counterDefault,"  DtoP changes =",counterPriority)
 
+	def setRLAgentTogglePriority(self): #heuristic logic to change priority of all agent starting with heuristic in the name. 
+		#this is done to overcome the limitation of training 100's of RL agent. Can we just train 25% of the RL agent with heuristic logic and 
+		#still get similar or better training output? One novelty of the paper, probably?
+		allVehicleList = self.traci.vehicle.getIDList()
+		# print("Total number of vehicles",len(allVehicleList))
+		self._npc_vehicleID,self._rl_vehicleID, self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
+
+		counterDefault = 0
+		counterPriority = 0
+		for rl in self._rl_vehicleID:
+			which_lane = self.traci.vehicle.getLaneID(rl)
+			if self.edgeIdInternal(which_lane)==False:
+				lane_index = which_lane.split("_")[1]
+				which_edge = which_lane.split("_")[0]
+				priority_lane = which_edge + str("_0") # find priority lane for that vehicle
+				vehicle_on_priority_lane = self.traci.lane.getLastStepVehicleIDs(priority_lane)
+				npc_vehicleID,rl_vehicleID, heuristic_vehicleID,cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(vehicle_on_priority_lane)
+				heuristic_lane_position = self.traci.vehicle.getLanePosition(rl)
+				
+				flag = False
+				diff = 0
+				cav_lane_position = -999
+				for cav in cav_vehicleID:
+					cav_lane_position = self.traci.vehicle.getLanePosition(cav)
+					diff = heuristic_lane_position - cav_lane_position
+					if diff>= self._lane_clearing_distance_threshold:					
+						continue
+					else:
+						#change priority of heuristic agent as it is inside clearing distance
+						# speed = self.traci.vehicle.getSpeed(heuristic)
+						if diff > 0:
+							# print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
+							self.traci.vehicle.setType(rl,"rl-default")
+							flag = True
+							# bestLanes = self.traci.vehicle.getBestLanes(rl)
+							# counterDefault+=1
+							# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+							# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+							# 	self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
+							# else:
+							# 	self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
+							break
+				if flag==False: 
+					if lane_index!=0 and self.traci.vehicle.getTypeID(rl)!="rl-priority":
+						# speed = self.traci.vehicle.getSpeed(heuristic)
+						# if speed>0.2:
+						self.traci.vehicle.setType(rl,"rl-priority")
+						# counterPriority+=1
+						# if cav_lane_position ==-999:
+						# 	print(str(diff),"--",str(heuristic_lane_position),"--","No CAV present")
+						# else:
+						# 	print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
+						# self.traci.vehicle.changeLane(heuristic,2,50) 
+					
+
+		# print("PtoD change =",counterDefault,"  DtoP changes =",counterPriority)
 
 
 	def reset(self,scenario):		
@@ -410,7 +483,10 @@ class SUMOEnv(Env):
 				self._npc_vehicleID,self.original_rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
 				
 				# self.initializeRLAgentStartValues()
-			# 	self.keepRLAgentLooping()				
+			# 	self.keepRLAgentLooping()
+			if self._sumo_step%self.action_steps==0:
+				self.setHeuristicAgentTogglePriority()
+				self.setRLAgentTogglePriority()
 			self._sumo_step +=1
 
 		#record observatinos for each agent
@@ -519,15 +595,16 @@ class SUMOEnv(Env):
 	
 	def computeCAVAccumulatedWaitingTime(self,rl_agent):
 		if self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] > 0:
-			cav_delay = -(self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]
-		# print(-cav_delay)
+			# cav_delay = -(self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]
+			cav_delay = -1
 		else:
 			cav_delay = +1
 		return cav_delay
 	
 	def computeRLAccumulatedWaitingTime(self,rl_agent):
 		if self._currentRLWaitingTimeForSpecificRLAgent[rl_agent] > 0:
-			rl_delay = -(self._currentRLWaitingTimeForSpecificRLAgent[rl_agent] - self._lastRLWaitingTimeForSpecificRLAgent[rl_agent])/self._currentRLWaitingTimeForSpecificRLAgent[rl_agent]
+			# rl_delay = -(self._currentRLWaitingTimeForSpecificRLAgent[rl_agent] - self._lastRLWaitingTimeForSpecificRLAgent[rl_agent])/self._currentRLWaitingTimeForSpecificRLAgent[rl_agent]
+			rl_delay = -1
 		else:
 			rl_delay = +1
 		# print(-rl_delay)
@@ -722,6 +799,14 @@ class SUMOEnv(Env):
 			average_PMx_emission += self.traci.edge.getPMxEmission(edge)
 		self._average_priorityLane_occupancy += average_priorityLane_occupancy/len(self._releventEdgeId)
 		self._average_PMx_emission += average_PMx_emission/len(self._releventEdgeId)
+  
+		#throughput computation using loop detector
+		throughput = 0
+		all_LD = self.traci.inductionloop.getIDList()
+		for ld in all_LD:
+			throughput += self.traci.inductionloop.getLastStepVehicleNumber(ld)
+		if len(all_LD) > 0:
+			self._average_throughput += throughput/len(all_LD)
 
 		# for rl_agent in self._rl_vehicleID:
 		# 	total_waiting_time = 0
@@ -759,6 +844,8 @@ class SUMOEnv(Env):
 
 			avg_occupancy_priorityLane = self._average_priorityLane_occupancy/self.action_steps
 			avg_PMx_emission = self._average_PMx_emission/self.action_steps
+   
+			avg_throughput = self._average_throughput/self.action_steps
 
 			# avg_delay_Heuristic = self._currentTimeLoss_Heuristic/self.action_steps
 			avg_delay_Heuristic = self._currentWaitingTime_Heuristic/self.action_steps
@@ -770,9 +857,9 @@ class SUMOEnv(Env):
 			# headers = ['avg_delay_RL', 'avg_speed_RL','avg_delay_NPC', 'avg_speed_NPC','congestion(avg_occupancy_network))','avg_PMx_emission']
 			# values = [avg_delay_RL, avg_speed_RL, avg_delay_NPC,avg_speed_NPC,avg_occupancy_network,avg_PMx_emission]
 			headers = ['avg_delay_CAV','avg_delay_RL','avg_delay_NPC','avg_delay_Heuristic','avg_speed_CAV','avg_speed_NPC','avg_speed_RL','avg_speed_Heuristic','avg_delay_ALL','avg_speed_AllButCAV','congestion(avg_occupancy_priorityLane)','avg_PMx_emission','Episode_Step']
-			values = [avg_delay_CAV,avg_delay_RL,avg_delay_NPC,avg_delay_Heuristic,avg_speed_CAV,avg_speed_NPC,avg_speed_RL,avg_speed_Heuristic,avg_delay_ALLButCAV,avg_speed_AllButCAV,avg_occupancy_priorityLane,avg_PMx_emission,self._episodeStep]
+			values = [avg_delay_CAV,avg_delay_RL,avg_delay_NPC,avg_delay_Heuristic,avg_speed_CAV,avg_speed_NPC,avg_speed_RL,avg_speed_Heuristic,avg_delay_ALLButCAV,avg_speed_AllButCAV,avg_throughput,avg_PMx_emission,self._episodeStep]
 			self._currentTimeLoss_cav=0;self._avg_speed_cav=0;self._currentTimeLoss_rl=0;self._avg_speed_rl=0;self._currentTimeLoss_npc=0;self._avg_speed_npc=0
-			self._average_priorityLane_occupancy=0;self._average_PMx_emission=0;self._currentTimeLoss_Heuristic=0;self._avg_speed_heuristic=0
+			self._average_priorityLane_occupancy=0;self._average_throughput=0;self._average_PMx_emission=0;self._currentTimeLoss_Heuristic=0;self._avg_speed_heuristic=0
 			self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
 			return headers, values
 	
@@ -875,7 +962,7 @@ class SUMOEnv(Env):
 					reward +=reward_n[id]
 				
 				if len(agentList)>0:
-					finalReward = (agentReward+reward)/len(agentList)
+					finalReward = (reward)/len(agentList)
 				else:
 					finalReward = agentReward
 				newReward_n.append(finalReward)

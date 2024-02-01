@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2024-01-19 13:35:07 by Eclipse SUMO libsumo Version 1.19.0
+<!-- generated on 2024-02-01 09:55:56 by Eclipse SUMO libsumo Version 1.19.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/libsumoConfiguration.xsd">
 
     <input>
         <net-file value="sumo_configs/LargeTestNetwork.net.xml"/>
-        <route-files value="sumo_configs/LargeTestNetwork.rou.xml"/>
+        <route-files value="sumo_configs/LTN_Density1_CAV20.rou.xml"/>
     </input>
 
     <output>
@@ -22,7 +22,7 @@
     </report>
 
     <random_number>
-        <seed value="46"/>
+        <seed value="42"/>
     </random_number>
 
     <gui_only>

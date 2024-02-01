@@ -30,7 +30,8 @@ wandb.init(
   tags=["MultiAgent", "RL"],
   mode=use_wandb
 )
-
+reward_type = "Global"
+# reward_type = "Local"
 mode = False
 testFlag = True
 USE_CUDA = False  # torch.cuda.is_available()
@@ -121,7 +122,12 @@ def run(config):
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
             obs = next_obs
             t += config.n_rollout_threads
-            total_reward += float(rewards[0][0])
+            if reward_type=="Global":
+                total_reward += float(rewards[0][0])
+            else:
+                total = np.sum(rewards)
+                temp_reward = total/50
+                total_reward += temp_reward
             
             val_losses = []
             pol_losses = []
