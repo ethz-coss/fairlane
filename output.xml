@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 <!-- generated on 2024-02-01 09:55:56 by Eclipse SUMO libsumo Version 1.19.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/libsumoConfiguration.xsd">
 
     <input>
         <net-file value="sumo_configs/LargeTestNetwork.net.xml"/>
         <route-files value="sumo_configs/LTN_Density1_CAV20.rou.xml"/>
+=======
+<!-- generated on 2024-02-01 11:13:26 by Eclipse SUMO GUI Version 1.19.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="sumo_configs/Grid1.net.xml"/>
+        <route-files value="sumo_configs/routes.rou.xml"/>
+>>>>>>> Stashed changes
+=======
+<!-- generated on 2024-02-01 11:13:26 by Eclipse SUMO GUI Version 1.19.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="sumo_configs/Grid1.net.xml"/>
+        <route-files value="sumo_configs/routes.rou.xml"/>
+>>>>>>> Stashed changes
     </input>
 
     <output>
@@ -13,23 +31,25 @@
     </output>
 
     <processing>
-        <time-to-teleport value="-1"/>
-        <waiting-time-memory value="3600"/>
+        <default.carfollowmodel value="IDM"/>
     </processing>
 
     <report>
         <no-warnings value="true"/>
+        <no-step-log value="true"/>
     </report>
+
+    <traci_server>
+        <remote-port value="50891"/>
+    </traci_server>
 
     <random_number>
         <seed value="42"/>
     </random_number>
 
     <gui_only>
+        <quit-on-end value="true"/>
         <start value="true"/>
     </gui_only>
 
 </configuration>
--->
-
-<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">

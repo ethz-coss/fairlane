@@ -11,3 +11,6 @@ netgenerate -o Grid.net.xml -g --grid.x-number=5 --grid.y-number=3 --default.lan
 
 python "C:\Program Files (x86)\Eclipse\Sumo\tools\randomTrips.py" -n Grid1.net.xml -r long_routes.rou.xml  -b 0 --intermediate 40 -o trips.xml -e 3600 -p 0.8 sumo-gui sim.sumocfg 
 A2B2 B2B1 B1C1
+
+
+python "C:\Program Files (x86)\Eclipse\Sumo\tools\randomTrips.py" -n LargeTestNetwork.net.xml -r LTN_Density1_routes.rou.xml  -b 0 --intermediate 100 -o trips.xml -e 4800 --insertion-density 15000

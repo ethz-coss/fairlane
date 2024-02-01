@@ -160,8 +160,8 @@ def createNPCRouteFiles(networkFileName):
     tree.write(routeFileName)
 
 def readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networkFileName):
-    routeFileName = "sumo_configs/long_routes.rou.xml"
-    newRouteFileName = "sumo_configs/all_routes.rou.xml"
+    routeFileName = "sumo_configs/LTN_Density1_routes.rou.xml"
+    newRouteFileName = "sumo_configs/test.rou.xml"
     routesList = []
     tree = ET.parse(routeFileName)
     root = tree.getroot()
@@ -170,7 +170,7 @@ def readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networ
         routesList.append(route.attrib['edges'])
 
     
-    rl_agent_numer = 28
+    rl_agent_numer = 120
     root = ET.Element('vehicles')
     for i in range (rl_agent_numer): #number of routes to generate
         child = ET.SubElement(root, 'vehicle')
@@ -187,7 +187,7 @@ def readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networ
         route.set('edges',str(edges))
         routesList.remove(edges)
     
-    cav_agent_numer = 40
+    cav_agent_numer = 480
     for i in range (cav_agent_numer): #number of routes to generate
         child = ET.SubElement(root, 'vehicle')
         #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
@@ -203,45 +203,45 @@ def readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networ
         route.set('edges',str(edges))
         routesList.remove(edges)
 
-    heuristic_agent_numer = 50
-    for i in range (heuristic_agent_numer): #number of routes to generate
-        child = ET.SubElement(root, 'vehicle')
-        #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
-        heuristic_id = f"heuristic_" + str(i) 
-        assignPriority = random.uniform(0, 1)
-        if assignPriority > 0.5:
-            priorityType = "heuristic-priority"
-        else:
-            priorityType = "heuristic-default"  
-        list_length =  len(routesList)
-        random_index = randrange(list_length)
-        edges = routesList[random_index]
-        child.set('id',str(heuristic_id))
-        child.set('type',str(priorityType))
-        child.set('depart',"0.0")
-        route = ET.SubElement(child, 'route')
-        route.set('edges',str(edges))
-        routesList.remove(edges)
+    # heuristic_agent_numer = 50
+    # for i in range (heuristic_agent_numer): #number of routes to generate
+    #     child = ET.SubElement(root, 'vehicle')
+    #     #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
+    #     heuristic_id = f"heuristic_" + str(i) 
+    #     assignPriority = random.uniform(0, 1)
+    #     if assignPriority > 0.5:
+    #         priorityType = "heuristic-priority"
+    #     else:
+    #         priorityType = "heuristic-default"  
+    #     list_length =  len(routesList)
+    #     random_index = randrange(list_length)
+    #     edges = routesList[random_index]
+    #     child.set('id',str(heuristic_id))
+    #     child.set('type',str(priorityType))
+    #     child.set('depart',"0.0")
+    #     route = ET.SubElement(child, 'route')
+    #     route.set('edges',str(edges))
+    #     routesList.remove(edges)
     
-    npc_agent_numer = 50
-    for i in range (npc_agent_numer): #number of routes to generate
-        child = ET.SubElement(root, 'vehicle')
-        #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
-        npc_id = f"npc_" + str(i) 
-        assignPriority = random.uniform(0, 1)
-        if assignPriority > 0.5:
-            priorityType = "passenger-priority"
-        else:
-            priorityType = "passenger-default"  
-        list_length =  len(routesList)
-        random_index = randrange(list_length)
-        edges = routesList[random_index]
-        child.set('id',str(npc_id))
-        child.set('type',str(priorityType))
-        child.set('depart',"0.0")
-        route = ET.SubElement(child, 'route')
-        route.set('edges',str(edges))
-        routesList.remove(edges)
+    # npc_agent_numer = 50
+    # for i in range (npc_agent_numer): #number of routes to generate
+    #     child = ET.SubElement(root, 'vehicle')
+    #     #id="RL_0" type="rl-priority" depart="0.0"> <route edges="E1E0 E0D0 D0C0
+    #     npc_id = f"npc_" + str(i) 
+    #     assignPriority = random.uniform(0, 1)
+    #     if assignPriority > 0.5:
+    #         priorityType = "passenger-priority"
+    #     else:
+    #         priorityType = "passenger-default"  
+    #     list_length =  len(routesList)
+    #     random_index = randrange(list_length)
+    #     edges = routesList[random_index]
+    #     child.set('id',str(npc_id))
+    #     child.set('type',str(priorityType))
+    #     child.set('depart',"0.0")
+    #     route = ET.SubElement(child, 'route')
+    #     route.set('edges',str(edges))
+    #     routesList.remove(edges)
 
     tree = ET.ElementTree(root)
     ET.indent(tree, space="\t", level=0)
@@ -324,7 +324,7 @@ def init_simulator(seed,networkFileName,withGUI):
         if edge.find("_") == -1:
             releventEdgeId.append(edge)
 
-    # readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networkFileName)
+    readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networkFileName)
     # testCode(networkFileName)
     # createNPCRouteFiles(networkFileName)
     # createCAVRouteFiles(networkFileName)
