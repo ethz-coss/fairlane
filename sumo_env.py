@@ -471,10 +471,7 @@ class SUMOEnv(Env):
 		self.resetAllVariables()
 		obs_n = []
 		seed = self._sumo_seed
-		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(3600),"--time-to-teleport", str(-1), "-W", "true",
-				"--statistic-output","output.xml","--edgedata-output","edge_output.xml"]
-		self.sumoCMD += ["--start"]
-		self.traci.load(self.sumoCMD + ['-n', self._networkFileName, '-r', self._routeFileName])
+		self.traci.load(self.sumoCMD + ["--seed", str(seed)] + ['-n', self._networkFileName, '-r', self._routeFileName])
 		#WARMUP PERIOD
 		while self._sumo_step <= self._warmup_steps:
 			self.traci.simulationStep() 		# Take a simulation step to initialize	
@@ -1036,11 +1033,10 @@ class SUMOEnv(Env):
 		else:
 			self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
 			sumoConfig = "sumo_configs/LargeTestNetwork.sumocfg"
-   
-		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(3600),"--time-to-teleport", str(-1),
-				 "--no-step-log","--statistic-output","output.xml","--edgedata-output","edge_output.xml"]
-   
-#   "--lanechange.duration",str(1),
+
+		self.sumoCMD = ["-c", sumoConfig, "--waiting-time-memory",str(3600),"--time-to-teleport", str(-1),
+				 "-W","--no-step-log","--statistic-output","output.xml"]
+
 		if withGUI:
 			sumoBinary = checkBinary('sumo-gui')
 			# sumoCMD += ["--start", "--quit-on-end"]
@@ -1051,11 +1047,10 @@ class SUMOEnv(Env):
 
 		# print(sumoBinary)
 		# sumoConfig = "sumo_configs/sim.sumocfg"
-		self.sumoCMD = ["-c", sumoConfig] + self.sumoCMD
 
 
 		random.seed(seed)
-		traci.start([sumoBinary] + self.sumoCMD)
+		traci.start([sumoBinary] + ["--seed", str(seed)] + self.sumoCMD)
 		return traci
 
 	def closeSimulator(traci):
