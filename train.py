@@ -33,7 +33,7 @@ wandb.init(
 reward_type = "Global"
 # reward_type = "Local"
 mode = False
-testFlag = True
+testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):

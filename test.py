@@ -26,14 +26,14 @@ import os
 from tqdm import tqdm
 import csv
 
-mode = False
+mode = True
 testFlag = True
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
+def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action,testStatAccumulation):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag)
+            env = SUMOEnv(mode=mode,testStatAccumulation=testStatAccumulation,testFlag=testFlag)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -59,8 +59,9 @@ def run(config):
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
 
-    NUM_AGENTS = 50
-    env = make_parallel_env(config.env_id, 1, config.seed, config.discrete_action)
+    NUM_AGENTS = 229
+    testStatAccumulation = 10
+    env = make_parallel_env(config.env_id, 1, config.seed, config.discrete_action,testStatAccumulation)
 
     # env.set_Testing(True)
     maddpg = MADDPG.init_from_save(run_dir)
@@ -71,13 +72,15 @@ def run(config):
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
-    testResultFilePath = f"results/Model_Run14.csv" 
+    testResultFilePath = f"results/Run22_Density1_CAV20.csv" 
+    # testResultFilePath = f"results/Heuristic_Density1_CAV20.csv" 
     # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
         written_headers = False
 
-        for seed in list(range(42,47)): # realizations for averaging
+        for seed in list(range(1,3)): # realizations for averaging - 47
+            # seed = 2
             env.set_sumo_seed(seed)
             for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
                 total_reward = 0
@@ -103,7 +106,7 @@ def run(config):
                     obs = next_obs
                     t += config.n_rollout_threads
                     total_reward += rewards[0]
-                    if et_i%10==0:
+                    if et_i%testStatAccumulation==0:
                         headers, values = env.getTestStats()
                         if not written_headers:
                             writer.writerow(headers)
@@ -128,17 +131,17 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run14", type=str) # runXX is performing the best on training data
-    parser.add_argument("--model_id", default="/model_ep2731.pt", type=str)
+    parser.add_argument("--run_id", default="run22", type=str) # runXX is performing the best on training data
+    parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
-                        default=42, type=int,
+                        default=1, type=int,
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1, type=int)
-    parser.add_argument("--episode_length", default=250, type=int)
+    parser.add_argument("--episode_length", default=121, type=int)
     parser.add_argument("--steps_per_update", default=10, type=int)
     parser.add_argument("--batch_size",
                         default=64, type=int,

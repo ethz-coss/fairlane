@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2024-02-01 09:55:56 by Eclipse SUMO libsumo Version 1.19.0
+<!-- generated on 2024-02-02 14:21:23 by Eclipse SUMO libsumo Version 1.19.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/libsumoConfiguration.xsd">
 
     <input>
         <net-file value="sumo_configs/LargeTestNetwork.net.xml"/>
-        <route-files value="sumo_configs/LTN_Density1_CAV20.rou.xml"/>
+        <route-files value="sumo_configs/LargeTestNetwork.rou.xml"/>
     </input>
 
     <output>
@@ -14,7 +14,7 @@
 
     <processing>
         <time-to-teleport value="-1"/>
-        <waiting-time-memory value="3600"/>
+        <waiting-time-memory value="30"/>
     </processing>
 
     <report>
@@ -30,6 +30,3 @@
     </gui_only>
 
 </configuration>
--->
-
-<statistics xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/statistic_file.xsd">
