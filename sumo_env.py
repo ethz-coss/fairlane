@@ -68,7 +68,7 @@ class SUMOEnv(Env):
 		self._timeLossOriginalDict = {}
 		self._net = sumolib.net.readNet(self._networkFileName,withInternal=True)
 		# set required vectorized gym env property
-		self.n = 50 #read it from the route file
+		self.n = 229 #read it from the route file
 		self.lastActionDict = {}
 		self.lastTimeLossRLAgents = {}
 		self._lastOverAllTimeLoss = {}
@@ -784,7 +784,7 @@ class SUMOEnv(Env):
 			avg_speed_rl+=self.traci.vehicle.getSpeed(rl_agent)
 			elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
 			currentTimeLoss_rl += self.traci.vehicle.getTimeLoss(rl_agent)
-			currentWaitingTime_rl += self.traci.vehicle.getWaitingTime(rl_agent)
+			currentWaitingTime_rl += self.traci.vehicle.getAccumulatedWaitingTime(rl_agent)
 		self._currentTimeLoss_rl += currentTimeLoss_rl/len(self._rl_vehicleID)
 		self._avg_speed_rl += avg_speed_rl/len(self._rl_vehicleID)
 		self._currentWaitingTime_rl += currentWaitingTime_rl/len(self._rl_vehicleID)
@@ -804,7 +804,7 @@ class SUMOEnv(Env):
 			avg_speed_cav+=self.traci.vehicle.getSpeed(cav_agent)
 			elapsed_its_own_time = self.traci.vehicle.getDeparture(cav_agent)
 			currentTimeLoss_cav += self.traci.vehicle.getTimeLoss(cav_agent) 
-			currentWaitingTime_cav += self.traci.vehicle.getWaitingTime(cav_agent)
+			currentWaitingTime_cav += self.traci.vehicle.getAccumulatedWaitingTime(cav_agent)
 		self._currentTimeLoss_cav += currentTimeLoss_cav/len(self._cav_vehicleID)
 		self._avg_speed_cav += avg_speed_cav/len(self._cav_vehicleID)
 		self._currentWaitingTime_cav += currentWaitingTime_cav/len(self._cav_vehicleID)
@@ -866,8 +866,6 @@ class SUMOEnv(Env):
 				self._average_throughput = throughput/len(all_LD)
 
 			avg_throughput = (self._average_throughput*3600)/(self.action_steps*self._testStatAccumulation)
-   
-			avg_throughput = self._average_throughput/self.action_steps
 
 			# # avg_delay_Heuristic = self._currentTimeLoss_Heuristic/self.action_steps
 			# avg_delay_Heuristic = self._currentWaitingTime_Heuristic/self.action_steps
@@ -878,8 +876,8 @@ class SUMOEnv(Env):
 			
 			# headers = ['avg_delay_RL', 'avg_speed_RL','avg_delay_NPC', 'avg_speed_NPC','congestion(avg_occupancy_network))','avg_PMx_emission']
 			# values = [avg_delay_RL, avg_speed_RL, avg_delay_NPC,avg_speed_NPC,avg_occupancy_network,avg_PMx_emission]
-			headers = ['avg_delay_CAV','avg_delay_RL','avg_speed_CAV','avg_speed_RL','Throughput','avg_PMx_emission','Episode_Step']
-			values = [avg_delay_CAV,avg_delay_RL,avg_speed_CAV,avg_speed_RL,avg_throughput,avg_PMx_emission,self._episodeStep-1]
+			headers = ['avg_delay_CAV','avg_delay_RL','avg_speed_CAV','avg_speed_RL','Throughput','avg_PMx_emission','Episode_Step',"Seed"]
+			values = [avg_delay_CAV,avg_delay_RL,avg_speed_CAV,avg_speed_RL,avg_throughput,avg_PMx_emission,self._episodeStep-1,self._sumo_seed]
 			
 			self._currentTimeLoss_cav=0;self._avg_speed_cav=0;self._currentTimeLoss_rl=0;self._avg_speed_rl=0;self._currentTimeLoss_npc=0;self._avg_speed_npc=0
 			self._average_priorityLane_occupancy=0;self._average_throughput=0;self._average_PMx_emission=0;self._currentTimeLoss_Heuristic=0;self._avg_speed_heuristic=0
@@ -1001,7 +999,7 @@ class SUMOEnv(Env):
 		# process action
 		#index 0 = # Toggle Priority
 		#index 1 = # do nothing
-		# self.setHeuristicAgentTogglePriority() # to simulate human decision-making
+		# self.setRLAgentTogglePriority() # to simulate human decision-making
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
 			action = self.lastActionDict[agent_id]
