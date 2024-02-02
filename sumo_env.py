@@ -94,7 +94,7 @@ class SUMOEnv(Env):
 		self._weightCAVPriority = 1 #3
 		self._weightRLWeightingTime = 1
 		self._weightCAVWeightingTime = 1 #2
-		self._average_throughput = 0
+
 		#test stats
 		self._currentTimeLoss_rl = 0
 		self._currentTimeLoss_npc = 0
@@ -107,6 +107,7 @@ class SUMOEnv(Env):
 		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
 		self._average_edge_occupancy = 0
 		self._average_priorityLane_occupancy = 0
+		self._average_throughput = 0
 		self._average_PMx_emission = 0
 
 		self._allEdgeIds = self.traci.edge.getIDList()
@@ -131,7 +132,7 @@ class SUMOEnv(Env):
 		# configure spaces
 		# self._num_observation = [len(self.getState(f'RL_{i}')) for i in range(self.n)]
 		# self._num_observation = [6,6]
-		self._num_observation = 10
+		self._num_observation = 9
 		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
 		# self._num_observation = [len(Agent(self, i, self.edge_agents[0]).getState()) for i in range(self._num_lane_agents)]*len(self.edge_agents)
@@ -338,6 +339,7 @@ class SUMOEnv(Env):
 		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
 		self._average_edge_occupancy = 0
 		self._average_priorityLane_occupancy = 0
+		self._average_throughput = 0
 		self._average_PMx_emission = 0
 		self._episodeStep = 0	
 		self._average_throughput = 0
@@ -375,7 +377,7 @@ class SUMOEnv(Env):
 				for cav in cav_vehicleID:
 					cav_lane_position = self.traci.vehicle.getLanePosition(cav)
 					diff = heuristic_lane_position - cav_lane_position
-					if diff>= self._lane_clearing_distance_threshold:					
+					if diff>= self._lane_clearing_distance_threshold and diff>0:					
 						continue
 					else:
 						#change priority of heuristic agent as it is inside clearing distance
@@ -464,7 +466,6 @@ class SUMOEnv(Env):
 
 		# print("PtoD change =",counterDefault,"  DtoP changes =",counterPriority)
 
-
 	def reset(self,scenario):		
 		print("--------Inside RESET---------")
 		self._sumo_step = 0
@@ -472,10 +473,7 @@ class SUMOEnv(Env):
 		self.resetAllVariables()
 		obs_n = []
 		seed = self._sumo_seed
-		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1), "-W", "true",
-				"--statistic-output","output.xml"]
-		self.sumoCMD += ["--start"]
-		self.traci.load(self.sumoCMD + ['-n', self._networkFileName, '-r', self._routeFileName])
+		self.traci.load(self.sumoCMD + ["--seed", str(seed)] + ['-n', self._networkFileName, '-r', self._routeFileName])
 		#WARMUP PERIOD
 		while self._sumo_step <= self._warmup_steps:
 			self.traci.simulationStep() 		# Take a simulation step to initialize	
@@ -771,15 +769,15 @@ class SUMOEnv(Env):
 		allVehicleList = self.traci.vehicle.getIDList()
 		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle = self.getSplitVehiclesList(allVehicleList)
 		
-		avg_speed_heuristic=0;currentTimeLoss_Heuristic=0;currentWaitingTime_Heuristic=0
-		for heuristic_agent in self._heuristic_vehicleID:
-			avg_speed_heuristic+=self.traci.vehicle.getSpeed(heuristic_agent)
-			elapsed_its_own_time = self.traci.vehicle.getDeparture(heuristic_agent)
-			currentTimeLoss_Heuristic += self.traci.vehicle.getTimeLoss(heuristic_agent)
-			currentWaitingTime_Heuristic += self.traci.vehicle.getWaitingTime(heuristic_agent)
-		self._currentTimeLoss_Heuristic += currentTimeLoss_Heuristic/len(self._heuristic_vehicleID)
-		self._avg_speed_heuristic += avg_speed_heuristic/len(self._heuristic_vehicleID)
-		self._currentWaitingTime_Heuristic += currentWaitingTime_Heuristic/len(self._heuristic_vehicleID)
+		# avg_speed_heuristic=0;currentTimeLoss_Heuristic=0;currentWaitingTime_Heuristic=0
+		# for heuristic_agent in self._heuristic_vehicleID:
+		# 	avg_speed_heuristic+=self.traci.vehicle.getSpeed(heuristic_agent)
+		# 	elapsed_its_own_time = self.traci.vehicle.getDeparture(heuristic_agent)
+		# 	currentTimeLoss_Heuristic += self.traci.vehicle.getTimeLoss(heuristic_agent)
+		# 	currentWaitingTime_Heuristic += self.traci.vehicle.getWaitingTime(heuristic_agent)
+		# self._currentTimeLoss_Heuristic += currentTimeLoss_Heuristic/len(self._heuristic_vehicleID)
+		# self._avg_speed_heuristic += avg_speed_heuristic/len(self._heuristic_vehicleID)
+		# self._currentWaitingTime_Heuristic += currentWaitingTime_Heuristic/len(self._heuristic_vehicleID)
 
 		avg_speed_rl=0;currentTimeLoss_rl=0;currentWaitingTime_rl=0
 		for rl_agent in self._rl_vehicleID:
@@ -791,15 +789,15 @@ class SUMOEnv(Env):
 		self._avg_speed_rl += avg_speed_rl/len(self._rl_vehicleID)
 		self._currentWaitingTime_rl += currentWaitingTime_rl/len(self._rl_vehicleID)
 
-		avg_speed_npc=0;currentTimeLoss_npc=0;currentWaitingTime_npc=0
-		for npc_agent in self._npc_vehicleID:
-			avg_speed_npc+=self.traci.vehicle.getSpeed(npc_agent)
-			elapsed_its_own_time = self.traci.vehicle.getDeparture(npc_agent)
-			currentTimeLoss_npc += self.traci.vehicle.getTimeLoss(npc_agent)
-			currentWaitingTime_npc += self.traci.vehicle.getWaitingTime(npc_agent)
-		self._currentTimeLoss_npc += currentTimeLoss_npc/len(self._npc_vehicleID)
-		self._avg_speed_npc += avg_speed_npc/len(self._npc_vehicleID)
-		self._currentWaitingTime_npc += currentWaitingTime_npc/len(self._npc_vehicleID)
+		# avg_speed_npc=0;currentTimeLoss_npc=0;currentWaitingTime_npc=0
+		# for npc_agent in self._npc_vehicleID:
+		# 	avg_speed_npc+=self.traci.vehicle.getSpeed(npc_agent)
+		# 	elapsed_its_own_time = self.traci.vehicle.getDeparture(npc_agent)
+		# 	currentTimeLoss_npc += self.traci.vehicle.getTimeLoss(npc_agent)
+		# 	currentWaitingTime_npc += self.traci.vehicle.getWaitingTime(npc_agent)
+		# self._currentTimeLoss_npc += currentTimeLoss_npc/len(self._npc_vehicleID)
+		# self._avg_speed_npc += avg_speed_npc/len(self._npc_vehicleID)
+		# self._currentWaitingTime_npc += currentWaitingTime_npc/len(self._npc_vehicleID)
 
 		avg_speed_cav = 0;currentTimeLoss_cav=0;currentWaitingTime_cav=0
 		for cav_agent in self._cav_vehicleID:
@@ -821,6 +819,7 @@ class SUMOEnv(Env):
 		self._average_priorityLane_occupancy += average_priorityLane_occupancy/len(self._releventEdgeId)
 		self._average_PMx_emission += average_PMx_emission/len(self._releventEdgeId)
 
+			
 		# for rl_agent in self._rl_vehicleID:
 		# 	total_waiting_time = 0
 		# 	edge_id = self.traci.vehicle.getRoadID(rl_agent)
@@ -851,9 +850,9 @@ class SUMOEnv(Env):
 			avg_delay_RL = self._currentWaitingTime_rl/self.action_steps
 			avg_speed_RL = self._avg_speed_rl/self.action_steps
 
-			# avg_delay_NPC = self._currentTimeLoss_npc/self.action_steps
-			avg_delay_NPC = self._currentWaitingTime_npc/self.action_steps
-			avg_speed_NPC = self._avg_speed_npc/self.action_steps
+			# # avg_delay_NPC = self._currentTimeLoss_npc/self.action_steps
+			# avg_delay_NPC = self._currentWaitingTime_npc/self.action_steps
+			# avg_speed_NPC = self._avg_speed_npc/self.action_steps
 
 			avg_occupancy_priorityLane = self._average_priorityLane_occupancy/self.action_steps
 			avg_PMx_emission = self._average_PMx_emission/self.action_steps
@@ -870,12 +869,12 @@ class SUMOEnv(Env):
    
 			avg_throughput = self._average_throughput/self.action_steps
 
-			# avg_delay_Heuristic = self._currentTimeLoss_Heuristic/self.action_steps
-			avg_delay_Heuristic = self._currentWaitingTime_Heuristic/self.action_steps
-			avg_speed_Heuristic = self._avg_speed_heuristic/self.action_steps
+			# # avg_delay_Heuristic = self._currentTimeLoss_Heuristic/self.action_steps
+			# avg_delay_Heuristic = self._currentWaitingTime_Heuristic/self.action_steps
+			# avg_speed_Heuristic = self._avg_speed_heuristic/self.action_steps
 
-			avg_delay_ALLButCAV = (avg_delay_RL + avg_delay_NPC + avg_delay_Heuristic)/3
-			avg_speed_AllButCAV = (avg_speed_RL + avg_speed_NPC + avg_speed_Heuristic)/3
+			# avg_delay_ALLButCAV = (avg_delay_RL + avg_delay_NPC + avg_delay_Heuristic)/3
+			# avg_speed_AllButCAV = (avg_speed_RL + avg_speed_NPC + avg_speed_Heuristic)/3
 			
 			# headers = ['avg_delay_RL', 'avg_speed_RL','avg_delay_NPC', 'avg_speed_NPC','congestion(avg_occupancy_network))','avg_PMx_emission']
 			# values = [avg_delay_RL, avg_speed_RL, avg_delay_NPC,avg_speed_NPC,avg_occupancy_network,avg_PMx_emission]
@@ -922,12 +921,12 @@ class SUMOEnv(Env):
 			actionFlag = False
 		
 		
-		self.traci.simulation.saveState('sumo_configs/savedstate.xml')
+		# self.traci.simulation.saveState('sumo_configs/savedstate.xml')
 		# self.initializeRLAgentStartValues()
 		vehicleCount = 0
 		while self._sumo_step <= self.action_steps:
 			# advance world state
-			# self.collectObservationPerStep()
+			self.collectObservationPerStep()
 			self.traci.simulationStep()
 			self._sumo_step +=1	
 			# self.collectObservation(False) ##Observation at each step till the end of the action step count (for reward computation) - lastTimeStepFlag lastTimeStepFlag
@@ -986,7 +985,7 @@ class SUMOEnv(Env):
 					reward +=reward_n[id]
 				
 				if len(agentList)>0:
-					finalReward = (reward)/len(agentList)
+					finalReward = (agentReward+reward)/(len(agentList)+1)
 				else:
 					finalReward = agentReward
 				newReward_n.append(finalReward)
@@ -1047,11 +1046,10 @@ class SUMOEnv(Env):
 		else:
 			self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
 			sumoConfig = "sumo_configs/LargeTestNetwork.sumocfg"
-   
-		self.sumoCMD = ["--seed", str(seed),"--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),
-				 "--no-step-log","--statistic-output","output.xml"]
-   
-#   "--lanechange.duration",str(1),
+
+		self.sumoCMD = ["-c", sumoConfig, "--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),
+				 "-W","--no-step-log","--statistic-output","output.xml"]
+
 		if withGUI:
 			sumoBinary = checkBinary('sumo-gui')
 			# sumoCMD += ["--start", "--quit-on-end"]
@@ -1062,11 +1060,10 @@ class SUMOEnv(Env):
 
 		# print(sumoBinary)
 		# sumoConfig = "sumo_configs/sim.sumocfg"
-		self.sumoCMD = ["-c", sumoConfig] + self.sumoCMD
 
 
 		random.seed(seed)
-		traci.start([sumoBinary] + self.sumoCMD)
+		traci.start([sumoBinary] + ["--seed", str(seed)] + self.sumoCMD)
 		return traci
 
 	def closeSimulator(traci):

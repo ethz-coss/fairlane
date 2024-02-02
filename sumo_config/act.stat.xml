@@ -1,0 +1,794 @@
+<!--
+	TITLE:	test1.stat.xml
+	AUTHOR:	Piotr Woznica - sf.contact@web-pw.com
+	DATE:	04/08/2010
+-->
+<city>
+  <general inhabitants="20000" households="8000" childrenAgeLimit="18" retirementAgeLimit="66" carRate="0.58" unemploymentRate="0.55" footDistanceLimit="800" incomingTraffic="1000" outgoingTraffic="2000" laborDemand="0.55"/>
+  <parameters carPreference="0.65" meanTimePerKmInCity="6" freeTimeActivityRate="0.55" uniformRandomTraffic="0.40" departureVariation="600"/>
+  <population>
+    <bracket beginAge="0" endAge="18" peopleNbr="15"/>
+    <bracket beginAge="19" endAge="30" peopleNbr="30"/>
+    <bracket beginAge="31" endAge="60" peopleNbr="30"/>
+    <bracket beginAge="61" endAge="90" peopleNbr="25"/>
+  </population>
+  <!-- <workHours>
+		<opening hour="30600" proportion="0.30" />
+		<opening hour="32400" proportion="0.70" />
+		<closing hour="43200" proportion="0.20" />
+		<closing hour="63000" proportion="0.20" />
+		<closing hour="64800" proportion="0.60" />
+	</workHours>
+	 -->
+  <workHours>
+    <opening hour="25200" proportion="0.01"/>
+    <!--7:00am -0.04-->
+    <opening hour="28800" proportion="0.10"/>
+    <!--8:00am -0.10-->
+    <opening hour="30600" proportion="0.10"/>
+    <!--8:30am -0.20-->
+    <opening hour="32400" proportion="0.20"/>
+    <!--9:00am -0.10-->
+    <opening hour="34200" proportion="0.20"/>
+    <!--9:30am +0.05-->
+    <opening hour="36000" proportion="0.20"/>
+    <!--10:00am new-->
+    <opening hour="39600" proportion="0.10"/>
+    <!--11:00am new-->
+    <opening hour="43200" proportion="0.09"/>
+    <!--12:00am new-->
+    <closing hour="43200" proportion="0.25"/>
+    <!--12:00pm +0.10-->
+    <closing hour="50400" proportion="0.20"/>
+    <!--14:00pm +0.10-->
+    <opening hour="52200" proportion="0.20"/>
+    <!--14:30pm +0.15-->
+    <opening hour="54000" proportion="0.25"/>
+    <!--15:00pm +0.15-->
+    <closing hour="63000" proportion="0.20"/>
+    <!--17:30pm -0.20-->
+    <closing hour="64800" proportion="0.25"/>
+    <!--18:00am -0.15-->
+    <closing hour="68400" proportion="0.15"/>
+    <!--19:00am -0.15-->
+  </workHours>
+  <cityGates>
+    <entrance edge="-840" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-846" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-848" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-1201" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-1404" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-867" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-1464" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-496" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-684" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-686" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-1057" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-880" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-730" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="319" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-330" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-17" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="9" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="25" pos="280" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-1494" pos="1" incoming="0.05" outgoing="0.05"/>
+    <entrance edge="-1199" pos="280" incoming="0.05" outgoing="0.05"/>
+  </cityGates>
+  <streets>
+    <street edge="-1005" population="82" workPosition="18"/>
+    <street edge="-1011" population="74" workPosition="26"/>
+    <street edge="-1027" population="62" workPosition="38"/>
+    <street edge="-1029" population="58" workPosition="42"/>
+    <street edge="-1033" population="90" workPosition="10"/>
+    <street edge="-1057" population="41" workPosition="59"/>
+    <street edge="-1093" population="13" workPosition="87"/>
+    <street edge="-11" population="76" workPosition="24"/>
+    <street edge="-116" population="78" workPosition="22"/>
+    <street edge="-117" population="18" workPosition="82"/>
+    <street edge="-119" population="86" workPosition="14"/>
+    <street edge="-1199" population="67" workPosition="33"/>
+    <street edge="-1201" population="72" workPosition="28"/>
+    <street edge="-121" population="80" workPosition="20"/>
+    <street edge="-123" population="51" workPosition="49"/>
+    <street edge="-125" population="72" workPosition="28"/>
+    <street edge="-126" population="64" workPosition="36"/>
+    <street edge="-128" population="34" workPosition="66"/>
+    <street edge="-13" population="4" workPosition="96"/>
+    <street edge="-1323" population="32" workPosition="68"/>
+    <street edge="-1342" population="95" workPosition="5"/>
+    <street edge="-1343" population="55" workPosition="45"/>
+    <street edge="-1345" population="26" workPosition="74"/>
+    <street edge="-1357" population="95" workPosition="5"/>
+    <street edge="-1359" population="62" workPosition="38"/>
+    <street edge="-1363" population="45" workPosition="55"/>
+    <street edge="-1373" population="55" workPosition="45"/>
+    <street edge="-138" population="61" workPosition="39"/>
+    <street edge="-1388" population="9" workPosition="91"/>
+    <street edge="-1391" population="40" workPosition="60"/>
+    <street edge="-1396" population="62" workPosition="38"/>
+    <street edge="-1404" population="17" workPosition="83"/>
+    <street edge="-1415" population="99" workPosition="1"/>
+    <street edge="-1425" population="17" workPosition="83"/>
+    <street edge="-1427" population="64" workPosition="36"/>
+    <street edge="-1429" population="0" workPosition="100"/>
+    <street edge="-1431" population="10" workPosition="90"/>
+    <street edge="-1441" population="52" workPosition="48"/>
+    <street edge="-1447" population="51" workPosition="49"/>
+    <street edge="-1464" population="3" workPosition="97"/>
+    <street edge="-1483" population="92" workPosition="8"/>
+    <street edge="-1493" population="5" workPosition="95"/>
+    <street edge="-1494" population="65" workPosition="35"/>
+    <street edge="-1499" population="4" workPosition="96"/>
+    <street edge="-15" population="93" workPosition="7"/>
+    <street edge="-1501" population="69" workPosition="31"/>
+    <street edge="-1517" population="19" workPosition="81"/>
+    <street edge="-1523" population="24" workPosition="76"/>
+    <street edge="-1524" population="73" workPosition="27"/>
+    <street edge="-1526" population="73" workPosition="27"/>
+    <street edge="-1532" population="85" workPosition="15"/>
+    <street edge="-1533" population="15" workPosition="85"/>
+    <street edge="-1535" population="25" workPosition="75"/>
+    <street edge="-17" population="77" workPosition="23"/>
+    <street edge="-1767" population="31" workPosition="69"/>
+    <street edge="-1769" population="35" workPosition="65"/>
+    <street edge="-1771" population="70" workPosition="30"/>
+    <street edge="-1773" population="89" workPosition="11"/>
+    <street edge="-1774" population="30" workPosition="70"/>
+    <street edge="-1775" population="14" workPosition="86"/>
+    <street edge="-1783" population="30" workPosition="70"/>
+    <street edge="-1797" population="40" workPosition="60"/>
+    <street edge="-1798" population="95" workPosition="5"/>
+    <street edge="-1882" population="36" workPosition="64"/>
+    <street edge="-1883" population="49" workPosition="51"/>
+    <street edge="-1891" population="86" workPosition="14"/>
+    <street edge="-19" population="68" workPosition="32"/>
+    <street edge="-210" population="8" workPosition="92"/>
+    <street edge="-25" population="43" workPosition="57"/>
+    <street edge="-3" population="2" workPosition="98"/>
+    <street edge="-313" population="86" workPosition="14"/>
+    <street edge="-319" population="14" workPosition="86"/>
+    <street edge="-325" population="71" workPosition="29"/>
+    <street edge="-326" population="47" workPosition="53"/>
+    <street edge="-330" population="75" workPosition="25"/>
+    <street edge="-332" population="69" workPosition="31"/>
+    <street edge="-333" population="45" workPosition="55"/>
+    <street edge="-336" population="58" workPosition="42"/>
+    <street edge="-338" population="16" workPosition="84"/>
+    <street edge="-344" population="61" workPosition="39"/>
+    <street edge="-348" population="77" workPosition="23"/>
+    <street edge="-349" population="85" workPosition="15"/>
+    <street edge="-356" population="37" workPosition="63"/>
+    <street edge="-361" population="62" workPosition="38"/>
+    <street edge="-365" population="47" workPosition="53"/>
+    <street edge="-379" population="79" workPosition="21"/>
+    <street edge="-38" population="37" workPosition="63"/>
+    <street edge="-381" population="16" workPosition="84"/>
+    <street edge="-383" population="28" workPosition="72"/>
+    <street edge="-492" population="10" workPosition="90"/>
+    <street edge="-496" population="4" workPosition="96"/>
+    <street edge="-504" population="50" workPosition="50"/>
+    <street edge="-505" population="24" workPosition="76"/>
+    <street edge="-517" population="17" workPosition="83"/>
+    <street edge="-523" population="71" workPosition="29"/>
+    <street edge="-533" population="39" workPosition="61"/>
+    <street edge="-535" population="18" workPosition="82"/>
+    <street edge="-569" population="84" workPosition="16"/>
+    <street edge="-570" population="79" workPosition="21"/>
+    <street edge="-577" population="76" workPosition="24"/>
+    <street edge="-579" population="93" workPosition="7"/>
+    <street edge="-585" population="51" workPosition="49"/>
+    <street edge="-588" population="54" workPosition="46"/>
+    <street edge="-589" population="88" workPosition="12"/>
+    <street edge="-592" population="55" workPosition="45"/>
+    <street edge="-597" population="5" workPosition="95"/>
+    <street edge="-601" population="62" workPosition="38"/>
+    <street edge="-608" population="25" workPosition="75"/>
+    <street edge="-612" population="85" workPosition="15"/>
+    <street edge="-613" population="3" workPosition="97"/>
+    <street edge="-614" population="65" workPosition="35"/>
+    <street edge="-618" population="14" workPosition="86"/>
+    <street edge="-621" population="17" workPosition="83"/>
+    <street edge="-623" population="45" workPosition="55"/>
+    <street edge="-625" population="51" workPosition="49"/>
+    <street edge="-639" population="82" workPosition="18"/>
+    <street edge="-64" population="15" workPosition="85"/>
+    <street edge="-642" population="89" workPosition="11"/>
+    <street edge="-650" population="55" workPosition="45"/>
+    <street edge="-674" population="99" workPosition="1"/>
+    <street edge="-679" population="33" workPosition="67"/>
+    <street edge="-684" population="29" workPosition="71"/>
+    <street edge="-686" population="66" workPosition="34"/>
+    <street edge="-696" population="28" workPosition="72"/>
+    <street edge="-698" population="83" workPosition="17"/>
+    <street edge="-7" population="94" workPosition="6"/>
+    <street edge="-728" population="73" workPosition="27"/>
+    <street edge="-730" population="78" workPosition="22"/>
+    <street edge="-732" population="34" workPosition="66"/>
+    <street edge="-734" population="68" workPosition="32"/>
+    <street edge="-837" population="1" workPosition="99"/>
+    <street edge="-840" population="14" workPosition="86"/>
+    <street edge="-846" population="22" workPosition="78"/>
+    <street edge="-848" population="86" workPosition="14"/>
+    <street edge="-867" population="16" workPosition="84"/>
+    <street edge="-870" population="17" workPosition="83"/>
+    <street edge="-876" population="36" workPosition="64"/>
+    <street edge="-880" population="39" workPosition="61"/>
+    <street edge="-882" population="16" workPosition="84"/>
+    <street edge="-9" population="47" workPosition="53"/>
+    <street edge="1005" population="67" workPosition="33"/>
+    <street edge="1011" population="5" workPosition="95"/>
+    <street edge="1027" population="5" workPosition="95"/>
+    <street edge="1029" population="25" workPosition="75"/>
+    <street edge="1033" population="77" workPosition="23"/>
+    <street edge="1057" population="43" workPosition="57"/>
+    <street edge="1093" population="42" workPosition="58"/>
+    <street edge="11" population="79" workPosition="21"/>
+    <street edge="116" population="44" workPosition="56"/>
+    <street edge="117" population="47" workPosition="53"/>
+    <street edge="119" population="53" workPosition="47"/>
+    <street edge="1199" population="90" workPosition="10"/>
+    <street edge="1201" population="91" workPosition="9"/>
+    <street edge="121" population="95" workPosition="5"/>
+    <street edge="123" population="77" workPosition="23"/>
+    <street edge="125" population="95" workPosition="5"/>
+    <street edge="126" population="82" workPosition="18"/>
+    <street edge="128" population="92" workPosition="8"/>
+    <street edge="13" population="57" workPosition="43"/>
+    <street edge="1323" population="12" workPosition="88"/>
+    <street edge="1342" population="69" workPosition="31"/>
+    <street edge="1343" population="92" workPosition="8"/>
+    <street edge="1345" population="41" workPosition="59"/>
+    <street edge="1357" population="40" workPosition="60"/>
+    <street edge="1359" population="44" workPosition="56"/>
+    <street edge="1363" population="90" workPosition="10"/>
+    <street edge="1373" population="21" workPosition="79"/>
+    <street edge="138" population="84" workPosition="16"/>
+    <street edge="1388" population="18" workPosition="82"/>
+    <street edge="1391" population="51" workPosition="49"/>
+    <street edge="1396" population="56" workPosition="44"/>
+    <street edge="1404" population="56" workPosition="44"/>
+    <street edge="1415" population="94" workPosition="6"/>
+    <street edge="1425" population="95" workPosition="5"/>
+    <street edge="1427" population="84" workPosition="16"/>
+    <street edge="1429" population="81" workPosition="19"/>
+    <street edge="1431" population="62" workPosition="38"/>
+    <street edge="1441" population="91" workPosition="9"/>
+    <street edge="1447" population="78" workPosition="22"/>
+    <street edge="1464" population="34" workPosition="66"/>
+    <street edge="1483" population="41" workPosition="59"/>
+    <street edge="1493" population="62" workPosition="38"/>
+    <street edge="1494" population="27" workPosition="73"/>
+    <street edge="1499" population="1" workPosition="99"/>
+    <street edge="15" population="35" workPosition="65"/>
+    <street edge="1501" population="44" workPosition="56"/>
+    <street edge="1517" population="59" workPosition="41"/>
+    <street edge="1523" population="93" workPosition="7"/>
+    <street edge="1524" population="21" workPosition="79"/>
+    <street edge="1526" population="88" workPosition="12"/>
+    <street edge="1532" population="64" workPosition="36"/>
+    <street edge="1533" population="7" workPosition="93"/>
+    <street edge="1535" population="64" workPosition="36"/>
+    <street edge="17" population="84" workPosition="16"/>
+    <street edge="1767" population="36" workPosition="64"/>
+    <street edge="1769" population="20" workPosition="80"/>
+    <street edge="1771" population="70" workPosition="30"/>
+    <street edge="1773" population="98" workPosition="2"/>
+    <street edge="1774" population="16" workPosition="84"/>
+    <street edge="1775" population="60" workPosition="40"/>
+    <street edge="1783" population="74" workPosition="26"/>
+    <street edge="1797" population="28" workPosition="72"/>
+    <street edge="1798" population="8" workPosition="92"/>
+    <street edge="1882" population="34" workPosition="66"/>
+    <street edge="1883" population="74" workPosition="26"/>
+    <street edge="1891" population="19" workPosition="81"/>
+    <street edge="19" population="38" workPosition="62"/>
+    <street edge="210" population="32" workPosition="68"/>
+    <street edge="25" population="92" workPosition="8"/>
+    <street edge="3" population="94" workPosition="6"/>
+    <street edge="313" population="24" workPosition="76"/>
+    <street edge="319" population="58" workPosition="42"/>
+    <street edge="325" population="66" workPosition="34"/>
+    <street edge="326" population="0" workPosition="100"/>
+    <street edge="330" population="89" workPosition="11"/>
+    <street edge="332" population="0" workPosition="100"/>
+    <street edge="333" population="22" workPosition="78"/>
+    <street edge="336" population="47" workPosition="53"/>
+    <street edge="338" population="55" workPosition="45"/>
+    <street edge="344" population="96" workPosition="4"/>
+    <street edge="348" population="31" workPosition="69"/>
+    <street edge="349" population="49" workPosition="51"/>
+    <street edge="356" population="22" workPosition="78"/>
+    <street edge="361" population="48" workPosition="52"/>
+    <street edge="365" population="74" workPosition="26"/>
+    <street edge="379" population="50" workPosition="50"/>
+    <street edge="38" population="52" workPosition="48"/>
+    <street edge="381" population="30" workPosition="70"/>
+    <street edge="383" population="10" workPosition="90"/>
+    <street edge="492" population="71" workPosition="29"/>
+    <street edge="496" population="58" workPosition="42"/>
+    <street edge="504" population="15" workPosition="85"/>
+    <street edge="505" population="16" workPosition="84"/>
+    <street edge="517" population="91" workPosition="9"/>
+    <street edge="523" population="48" workPosition="52"/>
+    <street edge="533" population="78" workPosition="22"/>
+    <street edge="535" population="0" workPosition="100"/>
+    <street edge="569" population="27" workPosition="73"/>
+    <street edge="570" population="48" workPosition="52"/>
+    <street edge="577" population="83" workPosition="17"/>
+    <street edge="579" population="11" workPosition="89"/>
+    <street edge="585" population="35" workPosition="65"/>
+    <street edge="588" population="11" workPosition="89"/>
+    <street edge="589" population="57" workPosition="43"/>
+    <street edge="592" population="22" workPosition="78"/>
+    <street edge="597" population="59" workPosition="41"/>
+    <street edge="601" population="38" workPosition="62"/>
+    <street edge="608" population="76" workPosition="24"/>
+    <street edge="612" population="10" workPosition="90"/>
+    <street edge="613" population="86" workPosition="14"/>
+    <street edge="614" population="57" workPosition="43"/>
+    <street edge="618" population="42" workPosition="58"/>
+    <street edge="621" population="81" workPosition="19"/>
+    <street edge="623" population="97" workPosition="3"/>
+    <street edge="625" population="32" workPosition="68"/>
+    <street edge="639" population="30" workPosition="70"/>
+    <street edge="64" population="75" workPosition="25"/>
+    <street edge="642" population="74" workPosition="26"/>
+    <street edge="650" population="53" workPosition="47"/>
+    <street edge="674" population="76" workPosition="24"/>
+    <street edge="679" population="4" workPosition="96"/>
+    <street edge="684" population="9" workPosition="91"/>
+    <street edge="686" population="62" workPosition="38"/>
+    <street edge="696" population="28" workPosition="72"/>
+    <street edge="698" population="51" workPosition="49"/>
+    <street edge="7" population="19" workPosition="81"/>
+    <street edge="728" population="51" workPosition="49"/>
+    <street edge="730" population="94" workPosition="6"/>
+    <street edge="732" population="81" workPosition="19"/>
+    <street edge="734" population="57" workPosition="43"/>
+    <street edge="837" population="92" workPosition="8"/>
+    <street edge="840" population="42" workPosition="58"/>
+    <street edge="846" population="13" workPosition="87"/>
+    <street edge="848" population="74" workPosition="26"/>
+    <street edge="867" population="63" workPosition="37"/>
+    <street edge="870" population="1" workPosition="99"/>
+    <street edge="876" population="41" workPosition="59"/>
+    <street edge="880" population="92" workPosition="8"/>
+    <street edge="882" population="13" workPosition="87"/>
+    <street edge="9" population="53" workPosition="47"/>
+  </streets>
+  <busStations>
+    <busStation id="1" edge="-1027" pos="139"/>
+    <busStation id="2" edge="-1029" pos="157"/>
+    <busStation id="3" edge="-1093" pos="0"/>
+    <busStation id="4" edge="-11" pos="17"/>
+    <busStation id="5" edge="-117" pos="39"/>
+    <busStation id="6" edge="-119" pos="35"/>
+    <busStation id="7" edge="-1201" pos="159"/>
+    <busStation id="8" edge="-121" pos="31"/>
+    <busStation id="9" edge="-123" pos="0"/>
+    <busStation id="10" edge="-125" pos="164"/>
+    <busStation id="11" edge="-128" pos="41"/>
+    <busStation id="12" edge="-1342" pos="101"/>
+    <busStation id="13" edge="-1345" pos="25"/>
+    <busStation id="14" edge="-1359" pos="195"/>
+    <busStation id="15" edge="-1363" pos="58"/>
+    <busStation id="16" edge="-1388" pos="106"/>
+    <busStation id="17" edge="-1404" pos="124"/>
+    <busStation id="18" edge="-1415" pos="26"/>
+    <busStation id="19" edge="-1425" pos="120"/>
+    <busStation id="20" edge="-1429" pos="7"/>
+    <busStation id="21" edge="-1464" pos="75"/>
+    <busStation id="22" edge="-1483" pos="15"/>
+    <busStation id="23" edge="-15" pos="12"/>
+    <busStation id="24" edge="-1517" pos="98"/>
+    <busStation id="25" edge="-1523" pos="6"/>
+    <busStation id="26" edge="-1524" pos="74"/>
+    <busStation id="27" edge="-1526" pos="16"/>
+    <busStation id="28" edge="-1533" pos="26"/>
+    <busStation id="29" edge="-1535" pos="11"/>
+    <busStation id="30" edge="-17" pos="112"/>
+    <busStation id="31" edge="-1797" pos="153"/>
+    <busStation id="32" edge="-1882" pos="94"/>
+    <busStation id="33" edge="-1891" pos="163"/>
+    <busStation id="34" edge="-19" pos="68"/>
+    <busStation id="35" edge="-25" pos="177"/>
+    <busStation id="36" edge="-3" pos="162"/>
+    <busStation id="37" edge="-313" pos="29"/>
+    <busStation id="38" edge="-319" pos="49"/>
+    <busStation id="39" edge="-325" pos="80"/>
+    <busStation id="40" edge="-326" pos="83"/>
+    <busStation id="41" edge="-332" pos="77"/>
+    <busStation id="42" edge="-336" pos="55"/>
+    <busStation id="43" edge="-338" pos="63"/>
+    <busStation id="44" edge="-344" pos="45"/>
+    <busStation id="45" edge="-361" pos="139"/>
+    <busStation id="46" edge="-365" pos="135"/>
+    <busStation id="47" edge="-38" pos="69"/>
+    <busStation id="48" edge="-383" pos="59"/>
+    <busStation id="49" edge="-496" pos="43"/>
+    <busStation id="50" edge="-505" pos="67"/>
+    <busStation id="51" edge="-517" pos="141"/>
+    <busStation id="52" edge="-523" pos="29"/>
+    <busStation id="53" edge="-533" pos="13"/>
+    <busStation id="54" edge="-535" pos="48"/>
+    <busStation id="55" edge="-579" pos="50"/>
+    <busStation id="56" edge="-588" pos="52"/>
+    <busStation id="57" edge="-592" pos="78"/>
+    <busStation id="58" edge="-597" pos="39"/>
+    <busStation id="59" edge="-601" pos="139"/>
+    <busStation id="60" edge="-618" pos="71"/>
+    <busStation id="61" edge="-621" pos="42"/>
+    <busStation id="62" edge="-639" pos="152"/>
+    <busStation id="63" edge="-642" pos="66"/>
+    <busStation id="64" edge="-686" pos="152"/>
+    <busStation id="65" edge="-698" pos="113"/>
+    <busStation id="66" edge="-728" pos="106"/>
+    <busStation id="67" edge="-840" pos="65"/>
+    <busStation id="68" edge="-867" pos="155"/>
+    <busStation id="69" edge="-876" pos="11"/>
+    <busStation id="70" edge="-9" pos="183"/>
+    <busStation id="71" edge="1027" pos="12"/>
+    <busStation id="72" edge="1029" pos="8"/>
+    <busStation id="73" edge="1093" pos="59"/>
+    <busStation id="74" edge="11" pos="140"/>
+    <busStation id="75" edge="117" pos="2"/>
+    <busStation id="76" edge="119" pos="79"/>
+    <busStation id="77" edge="1201" pos="50"/>
+    <busStation id="78" edge="121" pos="96"/>
+    <busStation id="79" edge="123" pos="44"/>
+    <busStation id="80" edge="125" pos="45"/>
+    <busStation id="81" edge="128" pos="56"/>
+    <busStation id="82" edge="1342" pos="16"/>
+    <busStation id="83" edge="1345" pos="176"/>
+    <busStation id="84" edge="1359" pos="201"/>
+    <busStation id="85" edge="1363" pos="90"/>
+    <busStation id="86" edge="1388" pos="66"/>
+    <busStation id="87" edge="1404" pos="15"/>
+    <busStation id="88" edge="1415" pos="112"/>
+    <busStation id="89" edge="1425" pos="93"/>
+    <busStation id="90" edge="1429" pos="81"/>
+    <busStation id="91" edge="1464" pos="49"/>
+    <busStation id="92" edge="1483" pos="19"/>
+    <busStation id="93" edge="15" pos="56"/>
+    <busStation id="94" edge="1517" pos="99"/>
+    <busStation id="95" edge="1523" pos="21"/>
+    <busStation id="96" edge="1524" pos="45"/>
+    <busStation id="97" edge="1526" pos="55"/>
+    <busStation id="98" edge="1533" pos="31"/>
+    <busStation id="99" edge="1535" pos="95"/>
+    <busStation id="100" edge="17" pos="113"/>
+    <busStation id="101" edge="1797" pos="65"/>
+    <busStation id="102" edge="1882" pos="163"/>
+    <busStation id="103" edge="1891" pos="34"/>
+    <busStation id="104" edge="19" pos="29"/>
+    <busStation id="105" edge="25" pos="183"/>
+    <busStation id="106" edge="3" pos="40"/>
+    <busStation id="107" edge="313" pos="63"/>
+    <busStation id="108" edge="319" pos="96"/>
+    <busStation id="109" edge="325" pos="139"/>
+    <busStation id="110" edge="326" pos="22"/>
+    <busStation id="111" edge="332" pos="61"/>
+    <busStation id="112" edge="336" pos="68"/>
+    <busStation id="113" edge="338" pos="21"/>
+    <busStation id="114" edge="344" pos="29"/>
+    <busStation id="115" edge="361" pos="22"/>
+    <busStation id="116" edge="365" pos="79"/>
+    <busStation id="117" edge="38" pos="23"/>
+    <busStation id="118" edge="383" pos="38"/>
+    <busStation id="119" edge="496" pos="62"/>
+    <busStation id="120" edge="505" pos="178"/>
+    <busStation id="121" edge="517" pos="97"/>
+    <busStation id="122" edge="523" pos="154"/>
+    <busStation id="123" edge="533" pos="16"/>
+    <busStation id="124" edge="535" pos="4"/>
+    <busStation id="125" edge="579" pos="22"/>
+    <busStation id="126" edge="588" pos="83"/>
+    <busStation id="127" edge="592" pos="85"/>
+    <busStation id="128" edge="597" pos="81"/>
+    <busStation id="129" edge="601" pos="28"/>
+    <busStation id="130" edge="618" pos="36"/>
+    <busStation id="131" edge="621" pos="9"/>
+    <busStation id="132" edge="639" pos="113"/>
+    <busStation id="133" edge="642" pos="129"/>
+    <busStation id="134" edge="686" pos="103"/>
+    <busStation id="135" edge="698" pos="20"/>
+    <busStation id="136" edge="728" pos="35"/>
+    <busStation id="137" edge="840" pos="34"/>
+    <busStation id="138" edge="867" pos="65"/>
+    <busStation id="139" edge="876" pos="21"/>
+    <busStation id="140" edge="9" pos="127"/>
+  </busStations>
+  <busLines>
+    <busLine id="101" maxTripDuration="10">
+      <stations>
+        <station refId="67"/>
+        <station refId="63"/>
+        <station refId="57"/>
+        <station refId="41"/>
+        <station refId="6"/>
+        <station refId="75"/>
+        <station refId="109"/>
+        <station refId="126"/>
+        <station refId="51"/>
+        <station refId="43"/>
+        <station refId="112"/>
+        <station refId="115"/>
+        <station refId="119"/>
+      </stations>
+      <frequencies>
+        <frequency begin="18000" end="25200" rate="300"/>
+        <frequency begin="25200" end="36000" rate="300"/>
+        <frequency begin="36000" end="57600" rate="300"/>
+        <frequency begin="57600" end="72000" rate="300"/>
+        <frequency begin="72000" end="86399" rate="300"/>
+      </frequencies>
+      <revStations>
+        <station refId="49"/>
+        <station refId="45"/>
+        <station refId="42"/>
+        <station refId="113"/>
+        <station refId="121"/>
+        <station refId="56"/>
+        <station refId="39"/>
+        <station refId="5"/>
+        <station refId="76"/>
+        <station refId="111"/>
+        <station refId="127"/>
+        <station refId="133"/>
+        <station refId="137"/>
+      </revStations>
+    </busLine>
+    <busLine id="102" maxTripDuration="10">
+      <stations>
+        <station refId="31"/>
+        <station refId="24"/>
+        <station refId="20"/>
+        <station refId="15"/>
+        <station refId="84"/>
+        <station refId="69"/>
+        <station refId="62"/>
+        <station refId="38"/>
+        <station refId="47"/>
+        <station refId="30"/>
+        <station refId="105"/>
+        <station refId="81"/>
+        <station refId="118"/>
+        <station refId="125"/>
+        <station refId="130"/>
+        <station refId="138"/>
+      </stations>
+      <frequencies>
+        <frequency begin="18000" end="25200" rate="300"/>
+        <frequency begin="25200" end="36000" rate="300"/>
+        <frequency begin="36000" end="57600" rate="300"/>
+        <frequency begin="57600" end="72000" rate="300"/>
+        <frequency begin="72000" end="86399" rate="300"/>
+      </frequencies>
+      <revStations>
+        <station refId="68"/>
+        <station refId="60"/>
+        <station refId="55"/>
+        <station refId="48"/>
+        <station refId="11"/>
+        <station refId="35"/>
+        <station refId="100"/>
+        <station refId="117"/>
+        <station refId="108"/>
+        <station refId="132"/>
+        <station refId="139"/>
+        <station refId="14"/>
+        <station refId="85"/>
+        <station refId="90"/>
+        <station refId="94"/>
+        <station refId="101"/>
+      </revStations>
+    </busLine>
+    <busLine id="103" maxTripDuration="10">
+      <stations>
+        <station refId="17"/>
+        <station refId="13"/>
+        <station refId="12"/>
+        <station refId="3"/>
+        <station refId="2"/>
+        <station refId="66"/>
+        <station refId="4"/>
+        <station refId="140"/>
+        <station refId="104"/>
+        <station refId="79"/>
+        <station refId="113"/>
+        <station refId="122"/>
+        <station refId="18"/>
+        <station refId="89"/>
+        <station refId="92"/>
+      </stations>
+      <frequencies>
+        <frequency begin="18000" end="25200" rate="300"/>
+        <frequency begin="25200" end="36000" rate="300"/>
+        <frequency begin="36000" end="57600" rate="300"/>
+        <frequency begin="57600" end="72000" rate="300"/>
+        <frequency begin="72000" end="86399" rate="300"/>
+      </frequencies>
+      <revStations>
+        <station refId="22"/>
+        <station refId="19"/>
+        <station refId="88"/>
+        <station refId="52"/>
+        <station refId="43"/>
+        <station refId="9"/>
+        <station refId="34"/>
+        <station refId="70"/>
+        <station refId="74"/>
+        <station refId="136"/>
+        <station refId="72"/>
+        <station refId="73"/>
+        <station refId="82"/>
+        <station refId="83"/>
+        <station refId="87"/>
+      </revStations>
+    </busLine>
+    <busLine id="104" maxTripDuration="10">
+      <stations>
+        <station refId="33"/>
+        <station refId="27"/>
+        <station refId="96"/>
+        <station refId="98"/>
+        <station refId="99"/>
+        <station refId="69"/>
+        <station refId="62"/>
+        <station refId="38"/>
+        <station refId="5"/>
+        <station refId="23"/>
+        <station refId="36"/>
+        <station refId="74"/>
+        <station refId="136"/>
+        <station refId="72"/>
+        <station refId="73"/>
+        <station refId="82"/>
+        <station refId="83"/>
+        <station refId="87"/>
+      </stations>
+      <frequencies>
+        <frequency begin="18000" end="25200" rate="300"/>
+        <frequency begin="25200" end="36000" rate="300"/>
+        <frequency begin="36000" end="57600" rate="300"/>
+        <frequency begin="57600" end="72000" rate="300"/>
+        <frequency begin="72000" end="86399" rate="300"/>
+      </frequencies>
+      <revStations>
+        <station refId="17"/>
+        <station refId="13"/>
+        <station refId="12"/>
+        <station refId="3"/>
+        <station refId="2"/>
+        <station refId="66"/>
+        <station refId="4"/>
+        <station refId="106"/>
+        <station refId="93"/>
+        <station refId="75"/>
+        <station refId="108"/>
+        <station refId="132"/>
+        <station refId="139"/>
+        <station refId="29"/>
+        <station refId="28"/>
+        <station refId="26"/>
+        <station refId="97"/>
+        <station refId="103"/>
+      </revStations>
+    </busLine>
+    <busLine id="105" maxTripDuration="10">
+      <stations>
+        <station refId="61"/>
+        <station refId="38"/>
+        <station refId="107"/>
+        <station refId="40"/>
+        <station refId="8"/>
+        <station refId="80"/>
+        <station refId="114"/>
+        <station refId="116"/>
+        <station refId="123"/>
+        <station refId="86"/>
+        <station refId="91"/>
+      </stations>
+      <frequencies>
+        <frequency begin="18000" end="25200" rate="300"/>
+        <frequency begin="25200" end="36000" rate="300"/>
+        <frequency begin="36000" end="57600" rate="300"/>
+        <frequency begin="57600" end="72000" rate="300"/>
+        <frequency begin="72000" end="86399" rate="300"/>
+      </frequencies>
+      <revStations>
+        <station refId="21"/>
+        <station refId="16"/>
+        <station refId="53"/>
+        <station refId="46"/>
+        <station refId="44"/>
+        <station refId="10"/>
+        <station refId="78"/>
+        <station refId="110"/>
+        <station refId="37"/>
+        <station refId="108"/>
+        <station refId="131"/>
+      </revStations>
+    </busLine>
+    <busLine id="106" maxTripDuration="10">
+      <stations>
+        <station refId="32"/>
+        <station refId="25"/>
+        <station refId="20"/>
+        <station refId="15"/>
+        <station refId="84"/>
+        <station refId="69"/>
+        <station refId="62"/>
+        <station refId="38"/>
+        <station refId="107"/>
+        <station refId="40"/>
+        <station refId="8"/>
+        <station refId="80"/>
+        <station refId="114"/>
+        <station refId="116"/>
+        <station refId="124"/>
+        <station refId="129"/>
+      </stations>
+      <frequencies>
+        <frequency begin="18000" end="25200" rate="300"/>
+        <frequency begin="25200" end="36000" rate="300"/>
+        <frequency begin="36000" end="57600" rate="300"/>
+        <frequency begin="57600" end="72000" rate="300"/>
+        <frequency begin="72000" end="86399" rate="300"/>
+      </frequencies>
+      <revStations>
+        <station refId="59"/>
+        <station refId="54"/>
+        <station refId="46"/>
+        <station refId="44"/>
+        <station refId="10"/>
+        <station refId="78"/>
+        <station refId="110"/>
+        <station refId="37"/>
+        <station refId="108"/>
+        <station refId="132"/>
+        <station refId="139"/>
+        <station refId="14"/>
+        <station refId="85"/>
+        <station refId="90"/>
+        <station refId="95"/>
+        <station refId="102"/>
+      </revStations>
+    </busLine>
+    <busLine id="107" maxTripDuration="10">
+      <stations>
+        <station refId="7"/>
+        <station refId="1"/>
+        <station refId="65"/>
+        <station refId="4"/>
+        <station refId="140"/>
+        <station refId="104"/>
+        <station refId="79"/>
+        <station refId="113"/>
+        <station refId="120"/>
+        <station refId="128"/>
+        <station refId="134"/>
+      </stations>
+      <frequencies>
+        <frequency begin="18000" end="25200" rate="300"/>
+        <frequency begin="25200" end="36000" rate="300"/>
+        <frequency begin="36000" end="57600" rate="300"/>
+        <frequency begin="57600" end="72000" rate="300"/>
+        <frequency begin="72000" end="86399" rate="300"/>
+      </frequencies>
+      <revStations>
+        <station refId="64"/>
+        <station refId="58"/>
+        <station refId="50"/>
+        <station refId="43"/>
+        <station refId="9"/>
+        <station refId="34"/>
+        <station refId="70"/>
+        <station refId="74"/>
+        <station refId="135"/>
+        <station refId="71"/>
+        <station refId="77"/>
+      </revStations>
+    </busLine>
+  </busLines>
+</city>

@@ -187,8 +187,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=10000, type=int)
-    parser.add_argument("--episode_length", default=120, type=int)
+    parser.add_argument("--n_episodes", default=2, type=int)
+    parser.add_argument("--episode_length", default=10, type=int)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
                         default=1024, type=int,
