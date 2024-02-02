@@ -4,6 +4,7 @@ models/
 results/
 wandb/
 
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -133,3 +134,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#Python
+*.pyc
+
+#SUMO 
+*.xml
+*.sumocfg

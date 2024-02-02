@@ -3,3 +3,8 @@ torch==2.1.2
 matplotlib
 wandb>=0.16
 baselines==0.1.5
+traci==1.19
+libsumo==1.19
+sumolib==1.19
+tqdm
+seaborn
