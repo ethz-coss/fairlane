@@ -651,7 +651,19 @@ class SUMOEnv(Env):
   	
 		return rl_delay
 
+	def computeAvgSpeedPriorityLaneReward(self,rl_agent):
+		reward = 0
+		all_LD = self.traci.inductionloop.getIDList()
+		avg_Speed = 0
+		rl_agent_lane = self.traci.vehicle.getLaneID(rl_agent)
+		max_Speed = self.traci.lane.getMaxSpeed(rl_agent_lane)
+		for ld in all_LD:
+			avg_Speed += self.traci.inductionloop.getLastIntervalMeanSpeed(ld)
+		avg_Speed = avg_Speed/len(all_LD)
+		reward = avg_Speed/max_Speed
 
+		return reward
+		
 	# get reward for a particular agent
 	def _get_reward(self,agent):
 		agent_id = f'RL_{agent.id}'
@@ -662,10 +674,12 @@ class SUMOEnv(Env):
 			reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
 			reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
 			reward_cav_priority = self.computeCAVReward(agent_id)
+			reward_priority_lane_Speed = self.computeAvgSpeedPriorityLaneReward(agent_id)
 			# overall_reward = reward_cooperative + reward_overallNetwork + reward_cav_priority
 			# overall_reward = reward_cav_priority
 			# print(overall_reward)		
-			overall_reward = self._weightCAVPriority*reward_cav_priority + self._weightRLWeightingTime*reward_RLWaitingTime + self._weightCAVWeightingTime*reward_cavWaitingTime
+			# overall_reward = self._weightCAVPriority*reward_cav_priority + self._weightRLWeightingTime*reward_RLWaitingTime + self._weightCAVWeightingTime*reward_cavWaitingTime
+			overall_reward = reward_cav_priority + reward_priority_lane_Speed
 			# overall_reward = reward_cav_priority
 
 

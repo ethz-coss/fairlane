@@ -37,7 +37,7 @@ mode = False
 testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, num_agents=50):
+def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50):
     def get_env_fn(rank):
         def init_env():
             env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents)
@@ -198,7 +198,7 @@ if __name__ == '__main__':
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
-    parser.add_argument("--n_agents", default=50, type=int)
+    parser.add_argument("--n_agents", default=10, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=10000, type=int)
     parser.add_argument("--episode_length", default=130, type=int)
