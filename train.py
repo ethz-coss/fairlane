@@ -37,10 +37,10 @@ mode = False
 testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_steps=30):
+def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_step=30):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_steps=action_steps)
+            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -73,7 +73,7 @@ def run(config):
         torch.set_num_threads(config.n_training_threads)
 
     env = make_parallel_env(config.env_id, config.n_rollout_threads, config.seed,
-                            config.discrete_action, num_agents=config.n_agents, action_steps=config.action_step)
+                            config.discrete_action, num_agents=config.n_agents, action_step=config.action_step)
     # print(env.action_space)
     # print(env.observation_space)
     normalize_rewards = False
@@ -116,8 +116,8 @@ def run(config):
         # obs = 
         # oo = np.hstack(obs)
         # obs = [i[np.newaxis,:] for i in obs]
-        episode_length = config.episode_duration/config.action_step
-        for et_i in range(config.episode_length):
+        episode_length = int(config.episode_duration/config.action_step)
+        for et_i in range(episode_length):
             step += 1
             
             torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])),
@@ -162,7 +162,7 @@ def run(config):
                     maddpg.update_all_targets()
                 maddpg.prep_rollouts(device=device)
         ep_rews = replay_buffer.get_average_rewards(
-            config.episode_length * config.n_rollout_threads)
+            episode_length * config.n_rollout_threads)
         # for a_i, a_ep_rew in enumerate(ep_rews):
         #     logger.add_scalar('agent%i/mean_episode_rewards' % a_i, a_ep_rew, ep_i)
         
@@ -199,11 +199,11 @@ if __name__ == '__main__':
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
-    parser.add_argument("--n_agents", default=10, type=int)
+    parser.add_argument("--n_agents", default=3, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=10000, type=int)
     parser.add_argument("--episode_duration", default=3600, type=int)
-    parser.add_argument("--action_step", default=30, type=int)
+    parser.add_argument("--action_step", default=5, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
