@@ -31,7 +31,7 @@ class SUMOEnv(Env):
 	def __init__(self,reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
                  done_callback=None, shared_viewer=True,mode='gui',testStatAccumulation=10,
-				 testFlag='False',simulation_end=36000, num_agents=50):
+				 testFlag='False',simulation_end=36000, num_agents=50, action_step=30):
 		self.pid = os.getpid()
 		self.sumoCMD = []
 		self._simulation_end = simulation_end
@@ -52,7 +52,7 @@ class SUMOEnv(Env):
 		self._reward_type = "Global" 
 		# self._reward_type = "Local" 
 		self.withGUI = mode
-		self.action_steps = 30	
+		self.action_steps = action_step
 		self._warmup_steps = 1199
 		self.traci = self.initSimulator(self.withGUI, self.pid)
 		self._sumo_step = 0		

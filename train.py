@@ -37,10 +37,10 @@ mode = False
 testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50):
+def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_steps=30):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents)
+            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_steps=action_steps)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -73,7 +73,7 @@ def run(config):
         torch.set_num_threads(config.n_training_threads)
 
     env = make_parallel_env(config.env_id, config.n_rollout_threads, config.seed,
-                            config.discrete_action, num_agents=config.n_agents)
+                            config.discrete_action, num_agents=config.n_agents, action_steps=config.action_step)
     # print(env.action_space)
     # print(env.observation_space)
     normalize_rewards = False
@@ -116,6 +116,7 @@ def run(config):
         # obs = 
         # oo = np.hstack(obs)
         # obs = [i[np.newaxis,:] for i in obs]
+        episode_length = config.episode_duration/config.action_step
         for et_i in range(config.episode_length):
             step += 1
             
@@ -201,7 +202,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_agents", default=10, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=10000, type=int)
-    parser.add_argument("--episode_length", default=130, type=int)
+    parser.add_argument("--episode_duration", default=3600, type=int)
+    parser.add_argument("--action_step", default=30, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
