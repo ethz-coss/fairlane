@@ -26,10 +26,11 @@ import csv
 
 use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
 wandb.init(
-  project="PriorityLane",
+  project="prioritylane",
   tags=["MultiAgent", "RL"],
   mode=use_wandb
 )
+
 reward_type = "Global"
 # reward_type = "Local"
 mode = False
@@ -165,6 +166,8 @@ def run(config):
         wandb.log({'# Episodes': ep_i, 
                 "Average Smooth Reward": smoothed_total_reward,
                 "Average Raw Reward": total_reward})
+        
+        
     
 
         if ep_i % config.save_interval < config.n_rollout_threads:
@@ -187,8 +190,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=2, type=int)
-    parser.add_argument("--episode_length", default=10, type=int)
+    parser.add_argument("--n_episodes", default=10000, type=int)
+    parser.add_argument("--episode_length", default=130, type=int)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
                         default=1024, type=int,
