@@ -30,7 +30,8 @@ class SUMOEnv(Env):
 	
 	def __init__(self,reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
-                 done_callback=None, shared_viewer=True,mode='gui',testStatAccumulation=10,testFlag='False',simulation_end=36000):
+                 done_callback=None, shared_viewer=True,mode='gui',testStatAccumulation=10,
+				 testFlag='False',simulation_end=36000, num_agents=50):
 		self.pid = os.getpid()
 		self.sumoCMD = []
 		self._simulation_end = simulation_end
@@ -68,7 +69,7 @@ class SUMOEnv(Env):
 		self._timeLossOriginalDict = {}
 		self._net = sumolib.net.readNet(self._networkFileName,withInternal=True)
 		# set required vectorized gym env property
-		self.n = 50 #read it from the route file
+		self.n = num_agents #read it from the route file
 		self.lastActionDict = {}
 		self.lastTimeLossRLAgents = {}
 		self._lastOverAllTimeLoss = {}

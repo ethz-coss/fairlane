@@ -37,10 +37,10 @@ mode = False
 testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action):
+def make_parallel_env(env_id, n_rollout_threads, seed, num_agents=50):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag)
+            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -73,12 +73,21 @@ def run(config):
         torch.set_num_threads(config.n_training_threads)
 
     env = make_parallel_env(config.env_id, config.n_rollout_threads, config.seed,
-                            config.discrete_action)
+                            config.discrete_action, num_agents=config.n_agents)
     # print(env.action_space)
     # print(env.observation_space)
+    normalize_rewards = False
+    ## Log configs
+    wandb.config.lr = config.lr
+    wandb.config.gamma = config.gamma
+    wandb.config.batch_size = config.batch_size
+    wandb.config.n_rl_agents = config.n_agents
+    wandb.config.normalize_rewards = normalize_rewards
+    assert env.envs[0].n == config.n_agents
 
     maddpg = MADDPG.init_from_env(env, agent_alg=config.agent_alg,
                                   adversary_alg=config.adversary_alg,
+                                  gamma=config.gamma,
                                   tau=config.tau,
                                   lr=config.lr,
                                   hidden_dim=config.hidden_dim)
@@ -145,7 +154,7 @@ def run(config):
                     print("---------------Training----------------")
                     for a_i in range(maddpg.nagents):
                         sample = replay_buffer.sample(config.batch_size,
-                                                    to_gpu=USE_CUDA)
+                                                    to_gpu=USE_CUDA, norm_rews=normalize_rewards)
                         val_loss, pol_loss = maddpg.update(sample, a_i)
                         val_losses.append(val_loss)
                         pol_losses.append(pol_loss)
@@ -189,9 +198,11 @@ if __name__ == '__main__':
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
+    parser.add_argument("--n_agents", default=50, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=10000, type=int)
     parser.add_argument("--episode_length", default=130, type=int)
+    parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
                         default=1024, type=int,
