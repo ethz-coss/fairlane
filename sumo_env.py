@@ -685,7 +685,7 @@ class SUMOEnv(Env):
 
 		return overall_reward
 		
-	def _seed(self, seed=None):
+	def seed(self, seed=None):
 		self.np_random, seed = seeding.np_random(seed)
 		return [seed]
 
@@ -960,7 +960,7 @@ class SUMOEnv(Env):
 			agent_actions.append(index)
 		return agent_actions
 	
-	def _step(self,action_n):
+	def step(self,action_n):
 
 		print("--------Inside STEP-----------")
 		obs_n = []

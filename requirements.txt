@@ -1,4 +1,4 @@
-gym==0.2.1
+gym==0.21
 torch==2.1.2
 matplotlib
 wandb>=0.16
