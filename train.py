@@ -82,7 +82,9 @@ def run(config):
     wandb.config.gamma = config.gamma
     wandb.config.batch_size = config.batch_size
     wandb.config.n_rl_agents = config.n_agents
+    wandb.config.action_step = config.action_step
     wandb.config.normalize_rewards = normalize_rewards
+
     assert env.envs[0].n == config.n_agents
 
     maddpg = MADDPG.init_from_env(env, agent_alg=config.agent_alg,
