@@ -1,8 +1,0 @@
-<configuration>
-    <input>
-		<net-file value="LargeTestNetwork.net.xml"/>
-        <additional-files value="LTN_loopDetectors.add.xml"/>
-        <route-files value="LTN_Density1_CAV20.rou.xml"/>
-    </input>
- </configuration>
-

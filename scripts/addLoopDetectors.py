@@ -5,8 +5,6 @@ import sys
 import numpy as np
 import traci
 import csv
-import param
-
 def loopDetector(network,edge_list,filename):
     
     dataList = []
@@ -50,7 +48,7 @@ def loopDetector(network,edge_list,filename):
 
     # write dataList to a CSV file
     # header = ['Lane_ID','Loop Detector Id', 'Loop Detector Position']
-    with open('C:/D/SUMO/PriorityLane/sumo_configs/loopDetectorList.csv', 'w', encoding='UTF8', newline='') as f:
+    with open('D:\Rohit\prioritylane/sumo_configs/loopDetectorList.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
         # write the header
         # writer.writerow(header)
@@ -66,7 +64,7 @@ vehicleTypeMap = {'passenger': 'custom2 custom1 passenger'}
 def writeAdditionalFilesForLoopDetector(edge_list):
    
     data = ET.Element('additionals')
-    with open('C:/D/SUMO/PriorityLane/sumo_configs/loopDetectorList.csv', 'r') as file:
+    with open('D:\Rohit\prioritylane/sumo_configs/loopDetectorList.csv', 'r') as file:
         csvreader = csv.reader(file)
         for row in csvreader:
             for key, vtype in vehicleTypeMap.items():
@@ -87,7 +85,7 @@ def writeAdditionalFilesForLoopDetector(edge_list):
  
     # Opening a file under the name `items2.xml`,
     # with operation mode `wb` (write + binary)
-    with open("C:/D/SUMO/PriorityLane/sumo_configs/LTN_loopDetectors.add.xml", "wb") as f:
+    with open("D:\Rohit\prioritylane/sumo_configs/LTN_loopDetectors.add.xml", "wb") as f:
         f.write(b_xml)
 
 

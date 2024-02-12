@@ -76,8 +76,8 @@ def run(config):
                             config.discrete_action, num_agents=config.n_agents, action_step=config.action_step)
     # print(env.action_space)
     # print(env.observation_space)
-    normalize_rewards = False
-    ## Log configs
+    normalize_rewards = True
+    # Log configs
     wandb.config.lr = config.lr
     wandb.config.gamma = config.gamma
     wandb.config.batch_size = config.batch_size
@@ -199,10 +199,10 @@ if __name__ == '__main__':
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
-    parser.add_argument("--n_agents", default=3, type=int)
+    parser.add_argument("--n_agents", default=1, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=10000, type=int)
-    parser.add_argument("--episode_duration", default=3600, type=int)
+    parser.add_argument("--n_episodes", default=1000, type=int)
+    parser.add_argument("--episode_duration", default=400, type=int)
     parser.add_argument("--action_step", default=5, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=128, type=int)

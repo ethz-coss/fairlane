@@ -3,8 +3,8 @@ import os, sys
 from addLoopDetectors import loopDetector
 from sumolib import net
 
-loopDetectorFileName = "C:/D/SUMO/PriorityLane/sumo_configs/LTN_loopDetectors.add.xml"
-networkFileName = 'C:/D/SUMO/PriorityLane/sumo_configs/LargeTestNetwork.net.xml'
+loopDetectorFileName = "D:\Rohit\prioritylane/sumo_configs/LTN_loopDetectors.add.xml"
+networkFileName = 'D:\Rohit\prioritylane/sumo_configs/LargeTestNetwork.net.xml'
 
 
 step = 0

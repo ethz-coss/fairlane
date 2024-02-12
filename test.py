@@ -27,13 +27,13 @@ from tqdm import tqdm
 import csv
 
 mode = False
-testFlag = True
+testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action,testStatAccumulation):
+def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_step=30):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testStatAccumulation=testStatAccumulation,testFlag=testFlag)
+            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -59,27 +59,29 @@ def run(config):
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
 
-    NUM_AGENTS = 229
+
     testStatAccumulation = 10
-    env = make_parallel_env(config.env_id, 1, config.seed, config.discrete_action,testStatAccumulation)
+    # env = make_parallel_env(config.env_id, 1, config.seed, config.discrete_action,testStatAccumulation)
+    env = make_parallel_env(config.env_id, config.n_rollout_threads, config.seed,
+                            config.discrete_action, num_agents=config.n_agents, action_step=config.action_step)
 
     # env.set_Testing(True)
     maddpg = MADDPG.init_from_save(run_dir)
-    maddpg = sample_agents(maddpg, NUM_AGENTS)
-    assert maddpg.nagents==env.envs[0].n
+    maddpg = sample_agents(maddpg, config.n_agents)
+    # assert maddpg.nagents==env.envs[0].n
 
     t = 0
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
     # testResultFilePath = f"results/Run22_Density1_CAV20.csv" 
-    testResultFilePath = f"results/Run19_Density1_CAV20.csv" 
+    testResultFilePath = f"results/dummy.csv" 
     # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
         written_headers = False
 
-        for seed in list(range(1,6)): # realizations for averaging - 47
+        for seed in list(range(1,3)): # realizations for averaging - 47
             # seed = 2
             env.set_sumo_seed(seed)
             for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
@@ -90,7 +92,9 @@ def run(config):
                 obs = env.reset(mode)
                 step = 0
                 maddpg.prep_rollouts(device='cpu')
-                for et_i in range(config.episode_length):
+                
+                episode_length = int(config.episode_duration/config.action_step)
+                for et_i in range(episode_length):
                     step += 1
                     torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])),
                                         requires_grad=False)
@@ -131,7 +135,7 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run19", type=str) # runXX is performing the best on training data
+    parser.add_argument("--run_id", default="run30", type=str) # runXX is performing the best on training data
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
@@ -139,12 +143,16 @@ if __name__ == '__main__':
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
+    
+    parser.add_argument("--n_agents", default=10, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=1, type=int)
-    parser.add_argument("--episode_length", default=131, type=int)
-    parser.add_argument("--steps_per_update", default=10, type=int)
+    parser.add_argument("--n_episodes", default=100, type=int)
+    parser.add_argument("--episode_duration", default=400, type=int)
+    parser.add_argument("--action_step", default=5, type=int)
+    parser.add_argument("--gamma", default=0.95, type=float)
+    parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
-                        default=64, type=int,
+                        default=1024, type=int,
                         help="Batch size for model training")
     parser.add_argument("--n_exploration_eps", default=25000, type=int)
     parser.add_argument("--init_noise_scale", default=0.3, type=float)
