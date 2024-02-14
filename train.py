@@ -109,7 +109,7 @@ def runner(config):
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
-
+    train_counter = 0
     for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
         total_reward = 0
         print("Episodes %i-%i of %i" % (ep_i + 1,
@@ -128,6 +128,7 @@ def runner(config):
         # oo = np.hstack(obs)
         # obs = [i[np.newaxis,:] for i in obs]
         episode_length = int(config.episode_duration/config.action_step)
+        
         for et_i in range(episode_length):
             step += 1
             
@@ -166,6 +167,8 @@ def runner(config):
                     maddpg.prep_training(device=device)
                 for u_i in range(config.n_rollout_threads):
                     print("---------------Training----------------")
+                    train_counter+=1
+                    print(train_counter)
                     for a_i in range(maddpg.nagents):
                         sample = replay_buffer.sample(config.batch_size,
                                                     to_gpu=USE_CUDA, norm_rews=normalize_rewards)
@@ -178,6 +181,7 @@ def runner(config):
             episode_length * config.n_rollout_threads)
         # for a_i, a_ep_rew in enumerate(ep_rews):
         #     logger.add_scalar('agent%i/mean_episode_rewards' % a_i, a_ep_rew, ep_i)
+        
         
         total_reward = total_reward/step
         if ep_i == 0:
@@ -216,9 +220,9 @@ if __name__ == '__main__':
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1000, type=int)
     parser.add_argument("--episode_duration", default=400, type=int)
-    parser.add_argument("--action_step", default=5, type=int)
+    parser.add_argument("--action_step", default=2, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
-    parser.add_argument("--steps_per_update", default=128, type=int)
+    parser.add_argument("--steps_per_update", default=40, type=int)
     parser.add_argument("--batch_size",
                         default=1024, type=int,
                         help="Batch size for model training")

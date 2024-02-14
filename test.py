@@ -26,7 +26,7 @@ import os
 from tqdm import tqdm
 import csv
 
-mode = False
+mode = True
 testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
@@ -75,7 +75,7 @@ def run(config):
     smoothed_total_reward = 0
     pid = os.getpid()
     # testResultFilePath = f"results/Run22_Density1_CAV20.csv" 
-    testResultFilePath = f"results/dummy.csv" 
+    testResultFilePath = f"results/test.csv" 
     # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
@@ -135,7 +135,7 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run30", type=str) # runXX is performing the best on training data
+    parser.add_argument("--run_id", default="run38", type=str) # runXX is performing the best on training data 
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
@@ -144,11 +144,11 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     
-    parser.add_argument("--n_agents", default=10, type=int)
+    parser.add_argument("--n_agents", default=1, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=100, type=int)
     parser.add_argument("--episode_duration", default=400, type=int)
-    parser.add_argument("--action_step", default=5, type=int)
+    parser.add_argument("--action_step", default=2, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
