@@ -10,20 +10,25 @@ from utils.buffer import ReplayBuffer
 from algorithms.maddpg import MADDPG
 
 import numpy as np
-import sys
+import gym
 from sumo_env import SUMOEnv
 from matplotlib import pyplot as plt
 import warnings
 warnings.filterwarnings('ignore')
 import wandb
 from argparse import ArgumentParser
-from utils.env_wrappers import SubprocVecEnv, DummyVecEnv
 import time
 import os
 from tqdm import tqdm
 import csv
 
+class MASyncVectorEnv(gym.vector.SyncVectorEnv):
+    def __init__(self, env_fns, observation_space=None, action_space=None, copy=True):
+        super().__init__(env_fns, observation_space=None, action_space=None, copy=True)
+        self._rewards = [0]*self.num_envs
+        self._dones = np.zeros((self.num_envs,self.envs[0].n,), dtype=np.bool_)
 
+    
 use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
 wandb.init(
   project="prioritylane",
@@ -40,17 +45,18 @@ USE_CUDA = False  # torch.cuda.is_available()
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_step=30):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step)
+            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step,
+                          episode_duration=config.episode_duration)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
         return init_env
     if n_rollout_threads == 1:
-        return DummyVecEnv([get_env_fn(0)],mode)
+        return MASyncVectorEnv([get_env_fn(0)])
     else:
-        return SubprocVecEnv([get_env_fn(i) for i in range(n_rollout_threads)])
+        return MASyncVectorEnv([get_env_fn(i) for i in range(n_rollout_threads)])
 
-def run(config):
+def runner(config):
     model_dir = Path('./models') / config.env_id / config.model_name
     if not model_dir.exists():
         curr_run = 'run1'
@@ -78,6 +84,7 @@ def run(config):
     # print(env.observation_space)
     normalize_rewards = True
     # Log configs
+    wandb.config.algorithm = 'MADDPG'
     wandb.config.lr = config.lr
     wandb.config.gamma = config.gamma
     wandb.config.batch_size = config.batch_size
@@ -85,18 +92,19 @@ def run(config):
     wandb.config.action_step = config.action_step
     wandb.config.normalize_rewards = normalize_rewards
 
-    assert env.envs[0].n == config.n_agents
-
-    maddpg = MADDPG.init_from_env(env, agent_alg=config.agent_alg,
+    unwrapped_env = env.envs[0]
+    assert unwrapped_env.n == config.n_agents
+    
+    maddpg = MADDPG.init_from_env(unwrapped_env, agent_alg=config.agent_alg,
                                   adversary_alg=config.adversary_alg,
                                   gamma=config.gamma,
                                   tau=config.tau,
                                   lr=config.lr,
                                   hidden_dim=config.hidden_dim)
     replay_buffer = ReplayBuffer(config.buffer_length, maddpg.nagents,
-                                 [obsp.shape[0] for obsp in env.observation_space],
+                                 [obsp.shape[0] for obsp in unwrapped_env.observation_space],
                                  [acsp.shape[0] if isinstance(acsp, Box) else acsp.n
-                                  for acsp in env.action_space])
+                                  for acsp in unwrapped_env.action_space])
     t = 0
     scores = []    
     smoothed_total_reward = 0
@@ -107,7 +115,8 @@ def run(config):
         print("Episodes %i-%i of %i" % (ep_i + 1,
                                         ep_i + 1 + config.n_rollout_threads,
                                         config.n_episodes))
-        obs = env.reset(mode)
+        obs = env.reset()
+        obs = np.array(obs) # cast to array of (rollouts, agents, observations)
         step = 0
         # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
         maddpg.prep_rollouts(device='cpu')
@@ -132,6 +141,8 @@ def run(config):
             # rearrange actions to be per environment
             actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
             next_obs, rewards, dones, infos = env.step(actions)
+            next_obs = np.array(next_obs) # cast Tuple Space to List
+
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
             obs = next_obs
             t += config.n_rollout_threads
@@ -229,4 +240,4 @@ if __name__ == '__main__':
 
     config = parser.parse_args()
 
-    run(config)
+    runner(config)

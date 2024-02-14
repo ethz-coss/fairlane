@@ -34,7 +34,8 @@ class SUMOEnv(Env):
 	def __init__(self,reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
                  done_callback=None, shared_viewer=True,mode='gui',testStatAccumulation=10,
-				 testFlag='False',simulation_end=36000, num_agents=50, action_step=30):
+				 testFlag='False',simulation_end=36000, num_agents=50, action_step=30,
+				 episode_duration=None):
 		self.pid = os.getpid()
 		self.sumoCMD = []
 		self._simulation_end = simulation_end
@@ -61,6 +62,7 @@ class SUMOEnv(Env):
 		# self._reward_type = "Local" 
 		self.withGUI = mode
 		self.action_steps = action_step
+		self.episode_duration = episode_duration
 		self._warmup_steps = 100
 		self.traci = self.initSimulator(self.withGUI, self.pid)
 		self._sumo_step = 0		
@@ -150,13 +152,18 @@ class SUMOEnv(Env):
 		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
 		# self._num_observation = [len(Agent(self, i, self.edge_agents[0]).getState()) for i in range(self._num_lane_agents)]*len(self.edge_agents)
-		self.action_space = []
-		self.observation_space = []
-		for i in range(self.n):
-			self.action_space.append(spaces.Discrete(self._num_actions)) #action space			
-			self.observation_space.append(spaces.Box(low=0, high=1, shape=(self._num_observation,)))# observation space
+		# self.action_space = spaces.MultiDiscrete([self._num_actions]*self.n)
+		# self.observation_space = spaces.Box(low=0, high=1, shape=(self.n, self._num_observation,))
+		self.action_space = spaces.Tuple([spaces.Discrete(self._num_actions) for i in range(self.n)])
+		self.observation_space = spaces.Tuple([spaces.Box(low=0, high=1, shape=(self._num_observation,)) for i in range(self.n)])
+
+
+		# for i in range(self.n):
+		# 	self.action_space.append(spaces.Discrete(self._num_actions)) #action space			
+		# 	self.observation_space.append(spaces.Box(low=0, high=1, shape=(self._num_observation,)))# observation space
 			
 		self.agents = self.createNAgents()
+		self.controlled_vehicles = self.agents
 
 		# parse the net
 
@@ -492,10 +499,9 @@ class SUMOEnv(Env):
 
 		# print("PtoD change =",counterDefault,"  DtoP changes =",counterPriority)
 
-	def reset(self,scenario):		
+	def reset(self):		
 		print("--------Inside RESET---------")
 		self._sumo_step = 0
-		self._scenario = scenario
 		self.resetAllVariables()
 		obs_n = []
 		seed = self._sumo_seed
@@ -739,7 +745,7 @@ class SUMOEnv(Env):
 		if len(self.lastActionDict) !=0:				
 			# reward_cooperative = self.computeCooperativeReward(agent_id)
 			# reward_overallNetwork = self.computeOverallNetworkReward(agent_id)
-			reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
+			# reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
 			# reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
 			# reward_priorityLane_Throughput = self.computePriorityLaneThroughput(agent_id)
 			reward_cav_priority = self.computeCAVReward(agent_id)
@@ -758,7 +764,9 @@ class SUMOEnv(Env):
 		self.np_random, seed = seeding.np_random(seed)
 		return [seed]
 
-	def _get_done(self, agent):  
+	def _get_done(self, agent):
+		if self.traci.simulation.getTime() >= self.episode_duration:
+			return True
 		return agent.done
 
 	# get info used for benchmarking
@@ -1046,6 +1054,7 @@ class SUMOEnv(Env):
 			return headers, values
 	
 	def make_action(self,actions):
+		# assumes actions are one-hot encoded
 		agent_actions = []
 		for i in range(0,self.n): 
 			index = np.argmax(actions[i])
@@ -1054,7 +1063,7 @@ class SUMOEnv(Env):
 	
 	def step(self,action_n):
 
-		print("--------Inside STEP-----------")
+		# print("--------Inside STEP-----------")
 		obs_n = []
 		reward_n = []
 		newReward_n = []
