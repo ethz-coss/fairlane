@@ -150,13 +150,18 @@ class SUMOEnv(Env):
 		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
 		# self._num_observation = [len(Agent(self, i, self.edge_agents[0]).getState()) for i in range(self._num_lane_agents)]*len(self.edge_agents)
-		self.action_space = []
-		self.observation_space = []
-		for i in range(self.n):
-			self.action_space.append(spaces.Discrete(self._num_actions)) #action space			
-			self.observation_space.append(spaces.Box(low=0, high=1, shape=(self._num_observation,)))# observation space
+		# self.action_space = spaces.MultiDiscrete([self._num_actions]*self.n)
+		# self.observation_space = spaces.Box(low=0, high=1, shape=(self.n, self._num_observation,))
+		self.action_space = spaces.Tuple([spaces.Discrete(self._num_actions) for i in range(self.n)])
+		self.observation_space = spaces.Tuple([spaces.Box(low=0, high=1, shape=(self._num_observation,)) for i in range(self.n)])
+
+
+		# for i in range(self.n):
+		# 	self.action_space.append(spaces.Discrete(self._num_actions)) #action space			
+		# 	self.observation_space.append(spaces.Box(low=0, high=1, shape=(self._num_observation,)))# observation space
 			
 		self.agents = self.createNAgents()
+		self.controlled_vehicles = self.agents
 
 		# parse the net
 
@@ -492,10 +497,9 @@ class SUMOEnv(Env):
 
 		# print("PtoD change =",counterDefault,"  DtoP changes =",counterPriority)
 
-	def reset(self,scenario):		
+	def reset(self):		
 		print("--------Inside RESET---------")
 		self._sumo_step = 0
-		self._scenario = scenario
 		self.resetAllVariables()
 		obs_n = []
 		seed = self._sumo_seed
@@ -1046,6 +1050,7 @@ class SUMOEnv(Env):
 			return headers, values
 	
 	def make_action(self,actions):
+		# assumes actions are one-hot encoded
 		agent_actions = []
 		for i in range(0,self.n): 
 			index = np.argmax(actions[i])
