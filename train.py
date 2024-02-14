@@ -45,7 +45,8 @@ USE_CUDA = False  # torch.cuda.is_available()
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_step=30):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step)
+            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step,
+                          episode_duration=config.episode_duration)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -83,6 +84,7 @@ def runner(config):
     # print(env.observation_space)
     normalize_rewards = True
     # Log configs
+    wandb.config.algorithm = 'MADDPG'
     wandb.config.lr = config.lr
     wandb.config.gamma = config.gamma
     wandb.config.batch_size = config.batch_size

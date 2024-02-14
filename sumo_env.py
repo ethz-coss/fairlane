@@ -34,7 +34,8 @@ class SUMOEnv(Env):
 	def __init__(self,reset_callback=None, reward_callback=None,
                  observation_callback=None, info_callback=None,
                  done_callback=None, shared_viewer=True,mode='gui',testStatAccumulation=10,
-				 testFlag='False',simulation_end=36000, num_agents=50, action_step=30):
+				 testFlag='False',simulation_end=36000, num_agents=50, action_step=30,
+				 episode_duration=None):
 		self.pid = os.getpid()
 		self.sumoCMD = []
 		self._simulation_end = simulation_end
@@ -61,6 +62,7 @@ class SUMOEnv(Env):
 		# self._reward_type = "Local" 
 		self.withGUI = mode
 		self.action_steps = action_step
+		self.episode_duration = episode_duration
 		self._warmup_steps = 100
 		self.traci = self.initSimulator(self.withGUI, self.pid)
 		self._sumo_step = 0		
@@ -743,7 +745,7 @@ class SUMOEnv(Env):
 		if len(self.lastActionDict) !=0:				
 			# reward_cooperative = self.computeCooperativeReward(agent_id)
 			# reward_overallNetwork = self.computeOverallNetworkReward(agent_id)
-			reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
+			# reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
 			# reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
 			# reward_priorityLane_Throughput = self.computePriorityLaneThroughput(agent_id)
 			reward_cav_priority = self.computeCAVReward(agent_id)
@@ -762,7 +764,9 @@ class SUMOEnv(Env):
 		self.np_random, seed = seeding.np_random(seed)
 		return [seed]
 
-	def _get_done(self, agent):  
+	def _get_done(self, agent):
+		if self.traci.simulation.getTime() >= self.episode_duration:
+			return True
 		return agent.done
 
 	# get info used for benchmarking
@@ -1059,7 +1063,7 @@ class SUMOEnv(Env):
 	
 	def step(self,action_n):
 
-		print("--------Inside STEP-----------")
+		# print("--------Inside STEP-----------")
 		obs_n = []
 		reward_n = []
 		newReward_n = []
