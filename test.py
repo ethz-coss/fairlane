@@ -25,6 +25,13 @@ import time
 import os
 from tqdm import tqdm
 import csv
+import gym
+
+class MASyncVectorEnv(gym.vector.SyncVectorEnv):
+    def __init__(self, env_fns, observation_space=None, action_space=None, copy=True):
+        super().__init__(env_fns, observation_space=None, action_space=None, copy=True)
+        self._rewards = [0]*self.num_envs
+        self._dones = np.zeros((self.num_envs,self.envs[0].n,), dtype=np.bool_)
 
 mode = True
 testFlag = False
@@ -33,15 +40,16 @@ USE_CUDA = False  # torch.cuda.is_available()
 def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_step=30):
     def get_env_fn(rank):
         def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step)
+            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step,
+                          episode_duration=config.episode_duration)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
         return init_env
     if n_rollout_threads == 1:
-        return DummyVecEnv([get_env_fn(0)],mode)
+        return MASyncVectorEnv([get_env_fn(0)])
     else:
-        return SubprocVecEnv([get_env_fn(i) for i in range(n_rollout_threads)])
+        return MASyncVectorEnv([get_env_fn(i) for i in range(n_rollout_threads)])
     
 
 def sample_agents(model, num_agents):
@@ -83,13 +91,14 @@ def run(config):
 
         for seed in list(range(1,3)): # realizations for averaging - 47
             # seed = 2
-            env.set_sumo_seed(seed)
+            env.seed(seed)
             for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
                 total_reward = 0
                 print("Episodes %i-%i of %i" % (ep_i + 1,
                                                 ep_i + 1 + config.n_rollout_threads,
                                                 config.n_episodes))
-                obs = env.reset(mode)
+                obs = env.reset()
+                obs = np.array(obs) # cast to array of (rollouts, agents, observations)
                 step = 0
                 maddpg.prep_rollouts(device='cpu')
                 
@@ -107,11 +116,12 @@ def run(config):
                     actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
                     # print(actions)
                     next_obs, rewards, dones, infos = env.step(actions)
+                    next_obs = np.array(next_obs) # cast to array of (rollouts, agents, observations)
                     obs = next_obs
                     t += config.n_rollout_threads
                     total_reward += rewards[0]
                     if et_i%testStatAccumulation==0 and et_i>0:
-                        headers, values = env.getTestStats()
+                        headers, values = env.envs[0].getTestStats()
                         if not written_headers:
                             writer.writerow(headers)
                             written_headers = True
@@ -135,7 +145,7 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run38", type=str) # runXX is performing the best on training data 
+    parser.add_argument("--run_id", default="run39", type=str) # runXX is performing the best on training data 
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
