@@ -150,7 +150,7 @@ class SUMOEnv(Env):
 		# priority_actions = ['0','1','2']
 		# configure spaces
 		# self._num_observation = [len(self.getState(f'RL_{i}')) for i in range(self.n)]
-		self._num_observation = 12
+		self._num_observation = 1
 		# self._num_observation = self._n_features*self._stateVehicleCount + 1
 		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
@@ -322,7 +322,7 @@ class SUMOEnv(Env):
 		accumulated_time_loss = 0
 		localRLAgentList = []
 		normalization_totalNumberOfVehicle = 30
-		normalization_totalNumberOfCAV = 30
+		normalization_totalNumberOfCAV = 10
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		allvehiclecounter = 0
 		edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
@@ -376,26 +376,20 @@ class SUMOEnv(Env):
 		else:
 			localNonPriorityRLVehicleCount=localNonPriorityRLVehicleCount-1
 		# state = [itsOwnTImeLoss/self.action_steps,itsPriorityAccess,priorityVehicleCount/normalization_totalNumberOfVehicle,nonPriorityVehicleCount/normalization_totalNumberOfVehicle,accumulated_time_loss/self.action_steps,cavCount/normalization_totalNumberOfCAV,all_cav_count/normalization_totalNumberOfVehicle]
-		state = [itsPriorityAccess,
-           (edge_length - agent_lane_pos)/edge_length, # distance from approaching intersection
-		   lane_index/2,
-		   occupancyCurrentLane,
-		   occupancyCurrentPriorityLane,
-		   occupancyNextLane,
-		   occupancyNextPriorityLane,
-		   localPriorityRLVehicleCount/allvehiclecounter,
-		   localNonPriorityRLVehicleCount/allvehiclecounter,
-		   nonPriorityVehicleCount/allvehiclecounter,
-		   cavCount/allvehiclecounter,
-		   all_cav_count/allvehiclecounter
-           ]
 		# state = [itsPriorityAccess,
-		#    localRLVehicleCount/self.n,
-		#    nonPriorityVehicleCount/normalization_totalNumberOfVehicle,
-		#    cavCount/normalization_totalNumberOfCAV,
-		#    all_cav_count/normalization_totalNumberOfVehicle,
-     	#    rlObs,
-        #    cavObs]
+        #    (edge_length - agent_lane_pos)/edge_length, # distance from approaching intersection
+		#    lane_index/2,
+		#    occupancyCurrentLane,
+		#    occupancyCurrentPriorityLane,
+		#    occupancyNextLane,
+		#    occupancyNextPriorityLane,
+		#    localPriorityRLVehicleCount/allvehiclecounter,
+		#    localNonPriorityRLVehicleCount/allvehiclecounter,
+		#    nonPriorityVehicleCount/allvehiclecounter,
+		#    cavCount/allvehiclecounter,
+		#    all_cav_count/allvehiclecounter
+        #    ]
+		state = [cavCount]
            
           
 		# if agent_id == "RL_1":
@@ -511,7 +505,7 @@ class SUMOEnv(Env):
 							# print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
 							self.traci.vehicle.setType(heuristic,"heuristic-default")
 							flag = True
-							bestLanes = self.traci.vehicle.getBestLanes(heuristic)
+							bestLanes = self.traci.vehicle.getBestLanes(heuristic)					
 							counterDefault+=1
 							# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
 							# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
@@ -695,6 +689,8 @@ class SUMOEnv(Env):
 	def computeCAVReward(self,rl_agent):
 		before_priority = self._beforePriorityForRLAgent[rl_agent]
 		after_priority = self._afterPriorityForRLAgent[rl_agent]
+		which_lane = self.traci.vehicle.getLaneID(rl_agent)
+		bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
 
 		if self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] > 0:
 			reward = +0.5
@@ -702,15 +698,19 @@ class SUMOEnv(Env):
 			reward = +0.5
 		elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] > 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] == 0:
 			reward = -0.5
+		elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] > 0:
+			reward = -0.5
+		elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]==0 and after_priority=="rl-priority":
+			reward = +0.5
 		# elif before_priority =="rl-default" and after_priority=="rl-priority" and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]==0:
 		# 	reward = +0.5
 		# elif before_priority =="rl-priority" and after_priority=="rl-priority" and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]==0:
 		# 	reward = +0.5
 		else:
-			reward = -0.5
+			reward = 0
 
-		# if before_priority!=after_priority:
-		# 	reward-=0.01
+		if before_priority!=after_priority:
+			reward-=0.01
 		# reward = 0
 		# if before_priority=="rl-priority" and after_priority=="rl-priority":
 		# 	reward = -0.5
@@ -873,6 +873,8 @@ class SUMOEnv(Env):
 			# reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
 			# reward_priorityLane_Throughput = self.computePriorityLaneThroughput(agent_id)
 			reward_cav_priority = self.computeCAVReward(agent_id)
+			# print("reward: " + str(reward_cav_priority))
+			# print("-------------------------")
 			# reward_priority_lane_Speed = self.computeAvgSpeedPriorityLaneReward(agent_id)
 			# overall_reward = reward_cooperative + reward_overallNetwork + reward_cav_priority
 			# overall_reward = reward_cav_priority
@@ -1068,6 +1070,13 @@ class SUMOEnv(Env):
 			for rl_agent in self._rl_vehicleID:
 				
 				which_lane = self.traci.vehicle.getLaneID(rl_agent)
+				bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
+				# bestlane="999"
+				# if bestLanesTuple[0][1] > bestLanesTuple[1][1]: # it checks the length that can be driven without lane
+				# 	bestlane = "0"
+				# else:
+				# 	bestlane = "1"
+     
 				if self.edgeIdInternal(which_lane)==True:
 					t = 0
 				elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
@@ -1158,6 +1167,12 @@ class SUMOEnv(Env):
 							total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
 
 				lane_id = self.traci.vehicle.getLaneID(rl_agent)
+				bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
+				# bestlane="999"
+				# if bestLanesTuple[0][1] > bestLanesTuple[1][1]: # it checks the length that can be driven without lane
+				# 	bestlane = "0"
+				# else:
+				# 	bestlane = "1"
 				# inductionloop_id = "det_" + str(lane_id.split("_")[0]) + "_0_1_passenger"
 				# throughput = self.traci.inductionloop.getLastIntervalVehicleNumber(inductionloop_id)
 				# self._throughputAfter[rl_agent] = throughput
@@ -1423,37 +1438,46 @@ class SUMOEnv(Env):
 	# set env action for a particular agent
 	def _set_action(self,time=None):
 		# process action
-		#index 0 = # Toggle Priority
-		#index 1 = # do nothing
+		#index 0 = # set default
+		#index 1 = # set priority
+  
+		
 		# self.setRLAgentTogglePriority() # to simulate human decision-making
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
 			action = self.lastActionDict[agent_id]
-			# action = 1
+			# print("action: " + str(action))
+			# action = 2
 			# if action==2:
 			# print(action)
-			if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
-				if action == 0:
-					self.traci.vehicle.setType(agent_id,"rl-default")
-					# self.traci.vehicle.updateBestLanes(agent_id)
-					# if self.edgeIdInternal(self.traci.vehicle.getLaneID(agent_id)) == False:
-					# 	bestLanes = self.traci.vehicle.getBestLanes(agent_id)
-					# 	self.traci.vehicle.changeLane(agent_id,1,self._laneChangeAttemptDuration) 
-						# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
-						# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
-						# 	self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
-						# else:
-						# 	self.traci.vehicle.changeLane(agent_id,1, self._laneChangeAttemptDuration)
-					# print("Priority Removed")
-				elif action == 1:
-					pass # do nothing
-			else:
-				if action == 0:
-					self.traci.vehicle.setType(agent_id,"rl-priority")
-					# self.traci.vehicle.updateBestLanes(agent_id)
-					# self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
-				elif action == 1:
-					pass # do nothing
+			if action == 0:
+				self.traci.vehicle.setType(agent_id,"rl-default")
+			elif action == 1:
+				self.traci.vehicle.setType(agent_id,"rl-priority")
+			# if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
+			# 	if action == 0:
+			# 		self.traci.vehicle.setType(agent_id,"rl-default")
+			# 		# self.traci.vehicle.rerouteEffort(agent_id)
+			# 		# self.traci.vehicle.updateBestLanes(agent_id)
+			# 		# if self.edgeIdInternal(self.traci.vehicle.getLaneID(agent_id)) == False:
+			# 		# 	bestLanes = self.traci.vehicle.getBestLanes(agent_id)
+			# 		# 	self.traci.vehicle.changeLane(agent_id,1,self._laneChangeAttemptDuration) 
+			# 			# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
+			# 			# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
+			# 			# 	self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
+			# 			# else:
+			# 			# 	self.traci.vehicle.changeLane(agent_id,1, self._laneChangeAttemptDuration)
+			# 		# print("Priority Removed")
+			# 	elif action == 1:
+			# 		pass # do nothing
+			# else:
+			# 	if action == 0:
+			# 		self.traci.vehicle.setType(agent_id,"rl-priority")
+			# 		# self.traci.vehicle.rerouteEffort(agent_id)
+			# 		# self.traci.vehicle.updateBestLanes(agent_id)
+			# 		# self.traci.vehicle.changeLane(agent_id,0,self._laneChangeAttemptDuration) 
+			# 	elif action == 1:
+			# 		pass # do nothing
 					
 	
 	def initSimulator(self,withGUI,portnum):
@@ -1475,7 +1499,7 @@ class SUMOEnv(Env):
 			sumoConfig = "sumo_configs/LargeTestNetwork.sumocfg"
 
 		self.sumoCMD = ["-c", sumoConfig, "--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),
-				 "-W","--no-step-log","--statistic-output","output.xml"]
+				 "-W","--no-step-log","--lanechange.duration",str(2),"--statistic-output","output.xml"]
 
 		if withGUI:
 			sumoBinary = checkBinary('sumo-gui')
