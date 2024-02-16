@@ -59,7 +59,7 @@ class MASyncVectorEnv(gym.vector.SyncVectorEnv):
         transpose_idx = (1,0,2)
         return np.transpose(obs, transpose_idx), rews, dones, infos
     
-use_wandb = os.environ.get('WANDB_MODE', 'disabled') # can be online, offline, or disabled
+use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
 wandb.init(
   project="prioritylane",
   tags=["MultiAgent", "RL"],
