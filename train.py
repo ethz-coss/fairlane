@@ -21,15 +21,45 @@ import time
 import os
 from tqdm import tqdm
 import csv
+from copy import deepcopy
+from gym.vector.utils import concatenate
 
 class MASyncVectorEnv(gym.vector.SyncVectorEnv):
     def __init__(self, env_fns, observation_space=None, action_space=None, copy=True):
         super().__init__(env_fns, observation_space=None, action_space=None, copy=True)
-        self._rewards = [0]*self.num_envs
+        self._rewards = np.zeros((self.num_envs,self.envs[0].n,), dtype=float)
         self._dones = np.zeros((self.num_envs,self.envs[0].n,), dtype=np.bool_)
 
+    def reset_wait(self): # override
+        obs = super().reset_wait()
+        transpose_idx = (1,0,2)
+        return np.transpose(obs, transpose_idx)
     
-use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
+    def step_wait(self): # override
+        observations, infos = [], []
+        for i, (env, action) in enumerate(zip(self.envs, self._actions)):
+            observation, self._rewards[i], self._dones[i], info = env.step(action)
+            try:
+                if all(self._dones[i]):
+                    observation = env.reset()
+            except TypeError: # probably not multiagent?
+                if self._dones[i]:
+                    observation = env.reset()
+            observations.append(observation)
+            infos.append(info)
+        self.observations = concatenate(
+            observations, self.observations, self.single_observation_space
+        )
+
+        obs, rews, dones = (
+            deepcopy(self.observations) if self.copy else self.observations,
+            np.copy(self._rewards),
+            np.copy(self._dones)
+        )
+        transpose_idx = (1,0,2)
+        return np.transpose(obs, transpose_idx), rews, dones, infos
+    
+use_wandb = os.environ.get('WANDB_MODE', 'disabled') # can be online, offline, or disabled
 wandb.init(
   project="prioritylane",
   tags=["MultiAgent", "RL"],
@@ -115,8 +145,7 @@ def runner(config):
         print("Episodes %i-%i of %i" % (ep_i + 1,
                                         ep_i + 1 + config.n_rollout_threads,
                                         config.n_episodes))
-        obs = env.reset()
-        obs = np.array(obs) # cast to array of (rollouts, agents, observations)
+        obs = env.reset() # is an cast to array of (agents, rollouts, observations)
         step = 0
         # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
         maddpg.prep_rollouts(device='cpu')
@@ -142,7 +171,6 @@ def runner(config):
             # rearrange actions to be per environment
             actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
             next_obs, rewards, dones, infos = env.step(actions)
-            next_obs = np.array(next_obs) # cast Tuple Space to List
 
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
             obs = next_obs
