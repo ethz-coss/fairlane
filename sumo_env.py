@@ -22,7 +22,6 @@ class Agent:
     def __init__(self, env, n_agent, edge_agent=None):
         """Dummy agent object"""
         self.edge_agent = edge_agent
-        self.traci = env.traci
         self.env = env
 
         self.id = n_agent
@@ -64,7 +63,6 @@ class SUMOEnv(Env):
 		self.action_steps = action_step
 		self.episode_duration = episode_duration
 		self._warmup_steps = 100
-		self.traci = self.initSimulator(self.withGUI, self.pid)
 		self._sumo_step = 0		
 		self.shared_reward = True
 		self._fatalErroFlag = False
@@ -81,6 +79,7 @@ class SUMOEnv(Env):
 		self._stateVehicleCount = 10
 		self._n_features = 4
 		self._net = sumolib.net.readNet(self._networkFileName,withInternal=True)
+		self._allEdgeIds = [Edge.getID() for Edge in self._net.getEdges(withInternal=False)]
 		# set required vectorized gym env property
 		self.n = num_agents #read it from the route file
 		self.lastActionDict = {}
@@ -129,7 +128,6 @@ class SUMOEnv(Env):
 		self._average_throughput = 0
 		self._average_PMx_emission = 0
 
-		self._allEdgeIds = self.traci.edge.getIDList()
 		for edge in self._allEdgeIds:
 			if edge.find(":") == -1:
 				self._releventEdgeId.append(edge)
@@ -168,7 +166,10 @@ class SUMOEnv(Env):
 		self.agents = self.createNAgents()
 		self.controlled_vehicles = self.agents
 
+		self.traci = self.initSimulator(self.withGUI, self.pid)
+
 		# parse the net
+		self.resetAllVariables()
 
 	def createNAgents(self):
 		agents = [Agent(self, i) for i in range(self.n)]
@@ -463,8 +464,16 @@ class SUMOEnv(Env):
 		self._episodeStep = 0	
 		self._average_throughput = 0
 
-		# self._npc_vehicleID=0
-		# self._rl_vehicleID=0
+		## ADD RL AGENTS DYNAMICALLY
+		for veh in self.controlled_vehicles:
+			veh_id = veh.name
+			self.traci.vehicle.addFull(veh_id, '', typeID='rl-priority', depart=0)
+			init_edge, = self.traci.vehicle.getRoute(veh_id) # a random edge was assigned
+			route = np.random.choice(self._allEdgeIds, size=100, replace=True).tolist()
+			route = [init_edge] + route
+			self.traci.vehicle.setVia(veh_id, route)
+			self.traci.vehicle.rerouteTraveltime(veh_id)
+			self.traci.vehicle.moveTo(veh_id, f'{route[0]}_0', 0)
 
 	def initializeRLAgentStartValues(self):
 		for rl_agent in self.original_rl_vehicleID:
@@ -588,10 +597,11 @@ class SUMOEnv(Env):
 	def reset(self):		
 		print("--------Inside RESET---------")
 		self._sumo_step = 0
-		self.resetAllVariables()
 		obs_n = []
 		seed = self._sumo_seed
 		self.traci.load(self.sumoCMD + ["--seed", str(seed)] + ['-n', self._networkFileName, '-r', self._routeFileName])
+		self.resetAllVariables()
+
 		#WARMUP PERIOD
 		while self._sumo_step <= self._warmup_steps:
 			self.traci.simulationStep() 		# Take a simulation step to initialize	
@@ -1503,9 +1513,8 @@ class SUMOEnv(Env):
 
 		if withGUI:
 			sumoBinary = checkBinary('sumo-gui')
-			# sumoCMD += ["--start", "--quit-on-end"]
-			self.sumoCMD += ["--start"]
-			# self.sumoCMD += ["--start", "--quit-on-end"]
+			# self.sumoCMD += ["--start"]
+			self.sumoCMD += ["--start", "--quit-on-end"]
 		else:	
 			sumoBinary = checkBinary('sumo')
 
