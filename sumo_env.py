@@ -514,10 +514,7 @@ class SUMOEnv(Env):
 							# print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
 							self.traci.vehicle.setType(heuristic,"heuristic-default")
 							flag = True
-							bestLanes = self.traci.vehicle.getBestLanes(heuristic)					
 							counterDefault+=1
-							# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
-							# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
 							# 	self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
 							# else:
 							# 	self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
@@ -571,13 +568,6 @@ class SUMOEnv(Env):
 							# print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
 							self.traci.vehicle.setType(rl,"rl-default")
 							flag = True
-							# bestLanes = self.traci.vehicle.getBestLanes(rl)
-							# counterDefault+=1
-							# if bestLanes[0][1] > bestLanes[1][1]: # it checks the length that can be driven without lane
-							# 	#change for the prospective lanes (measured from the start of that lane). Higher value is preferred. 
-							# 	self.traci.vehicle.changeLane(heuristic,0,self._laneChangeAttemptDuration) 
-							# else:
-							# 	self.traci.vehicle.changeLane(heuristic,1, self._laneChangeAttemptDuration)
 							break
 				if flag==False: 
 					if lane_index!=0 and self.traci.vehicle.getTypeID(rl)!="rl-priority":
@@ -699,8 +689,6 @@ class SUMOEnv(Env):
 	def computeCAVReward(self,rl_agent):
 		before_priority = self._beforePriorityForRLAgent[rl_agent]
 		after_priority = self._afterPriorityForRLAgent[rl_agent]
-		which_lane = self.traci.vehicle.getLaneID(rl_agent)
-		bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
 
 		if self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] > 0:
 			reward = +0.5
@@ -1079,16 +1067,6 @@ class SUMOEnv(Env):
 			self._listOfVehicleIdsInConcern.clear()
 			for rl_agent in self._rl_vehicleID:
 				
-				which_lane = self.traci.vehicle.getLaneID(rl_agent)
-				bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
-				# bestlane="999"
-				# if bestLanesTuple[0][1] > bestLanesTuple[1][1]: # it checks the length that can be driven without lane
-				# 	bestlane = "0"
-				# else:
-				# 	bestlane = "1"
-     
-				if self.edgeIdInternal(which_lane)==True:
-					t = 0
 				elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
 				itsOwnTImeLoss = self.traci.vehicle.getTimeLoss(rl_agent) / (elapsed_simulation_time - elapsed_its_own_time)
 				self.lastTimeLossRLAgents[rl_agent] = itsOwnTImeLoss
@@ -1177,12 +1155,6 @@ class SUMOEnv(Env):
 							total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
 
 				lane_id = self.traci.vehicle.getLaneID(rl_agent)
-				bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
-				# bestlane="999"
-				# if bestLanesTuple[0][1] > bestLanesTuple[1][1]: # it checks the length that can be driven without lane
-				# 	bestlane = "0"
-				# else:
-				# 	bestlane = "1"
 				# inductionloop_id = "det_" + str(lane_id.split("_")[0]) + "_0_1_passenger"
 				# throughput = self.traci.inductionloop.getLastIntervalVehicleNumber(inductionloop_id)
 				# self._throughputAfter[rl_agent] = throughput

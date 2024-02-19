@@ -1,65 +1,20 @@
 import argparse
 import torch
-import time
 import os
 import numpy as np
-from gym.spaces import Box, Discrete
+from gym.spaces import Box
 from pathlib import Path
 from torch.autograd import Variable
 from utils.buffer import ReplayBuffer
 from algorithms.maddpg import MADDPG
-
-import numpy as np
-import gym
 from sumo_env import SUMOEnv
-from matplotlib import pyplot as plt
-import warnings
-warnings.filterwarnings('ignore')
 import wandb
-from argparse import ArgumentParser
-import time
 import os
 from tqdm import tqdm
-import csv
-from copy import deepcopy
-from gym.vector.utils import concatenate
+from utils.common import make_parallel_env
 
-class MASyncVectorEnv(gym.vector.SyncVectorEnv):
-    def __init__(self, env_fns, observation_space=None, action_space=None, copy=True):
-        super().__init__(env_fns, observation_space=None, action_space=None, copy=True)
-        self._rewards = np.zeros((self.num_envs,self.envs[0].n,), dtype=float)
-        self._dones = np.zeros((self.num_envs,self.envs[0].n,), dtype=np.bool_)
-
-    def reset_wait(self): # override
-        obs = super().reset_wait()
-        transpose_idx = (1,0,2)
-        return np.transpose(obs, transpose_idx)
     
-    def step_wait(self): # override
-        observations, infos = [], []
-        for i, (env, action) in enumerate(zip(self.envs, self._actions)):
-            observation, self._rewards[i], self._dones[i], info = env.step(action)
-            try:
-                if all(self._dones[i]):
-                    observation = env.reset()
-            except TypeError: # probably not multiagent?
-                if self._dones[i]:
-                    observation = env.reset()
-            observations.append(observation)
-            infos.append(info)
-        self.observations = concatenate(
-            observations, self.observations, self.single_observation_space
-        )
-
-        obs, rews, dones = (
-            deepcopy(self.observations) if self.copy else self.observations,
-            np.copy(self._rewards),
-            np.copy(self._dones)
-        )
-        transpose_idx = (1,0,2)
-        return np.transpose(obs, transpose_idx), rews, dones, infos
-    
-use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
+use_wandb = os.environ.get('WANDB_MODE', 'disabled') # can be online, offline, or disabled
 wandb.init(
   project="prioritylane",
   tags=["MultiAgent", "RL"],
@@ -72,19 +27,6 @@ mode = False
 testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_step=30):
-    def get_env_fn(rank):
-        def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step,
-                          episode_duration=config.episode_duration)
-            env.seed(seed + rank * 1000)
-            np.random.seed(seed + rank * 1000)
-            return env
-        return init_env
-    if n_rollout_threads == 1:
-        return MASyncVectorEnv([get_env_fn(0)])
-    else:
-        return MASyncVectorEnv([get_env_fn(i) for i in range(n_rollout_threads)])
 
 def runner(config):
     model_dir = Path('./models') / config.env_id / config.model_name
@@ -108,8 +50,8 @@ def runner(config):
     if not USE_CUDA:
         torch.set_num_threads(config.n_training_threads)
 
-    env = make_parallel_env(config.env_id, config.n_rollout_threads, config.seed,
-                            config.discrete_action, num_agents=config.n_agents, action_step=config.action_step)
+    env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, mode, testFlag,
+                            config.episode_duration, num_agents=config.n_agents, action_step=config.action_step)
     # print(env.action_space)
     # print(env.observation_space)
     normalize_rewards = True

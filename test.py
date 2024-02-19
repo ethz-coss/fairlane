@@ -1,60 +1,28 @@
 import argparse
 import torch
-import time
 import os
 import numpy as np
-from gym.spaces import Box, Discrete
 from pathlib import Path
 from torch.autograd import Variable
-# from tensorboardX import SummaryWriter
-
-from utils.buffer import ReplayBuffer
 from algorithms.maddpg import MADDPG
-
-import numpy as np
-import sys
 
 from sumo_env import SUMOEnv
 from matplotlib import pyplot as plt
-import warnings
-warnings.filterwarnings('ignore')
 import wandb
-from argparse import ArgumentParser
-from utils.env_wrappers import SubprocVecEnv, DummyVecEnv
-import time
-import os
 from tqdm import tqdm
 import csv
-import gym
+from utils.common import make_parallel_env
 
-class MASyncVectorEnv(gym.vector.SyncVectorEnv):
-    def __init__(self, env_fns, observation_space=None, action_space=None, copy=True):
-        super().__init__(env_fns, observation_space=None, action_space=None, copy=True)
-        self._rewards = [0]*self.num_envs
-        self._dones = np.zeros((self.num_envs,self.envs[0].n,), dtype=np.bool_)
 
-mode = True
+mode = False
 testFlag = False
 USE_CUDA = False  # torch.cuda.is_available()
 
-def make_parallel_env(env_id, n_rollout_threads, seed, discrete_action, num_agents=50,action_step=30):
-    def get_env_fn(rank):
-        def init_env():
-            env = SUMOEnv(mode=mode,testFlag=testFlag, num_agents=num_agents,action_step=action_step,
-                          episode_duration=config.episode_duration)
-            env.seed(seed + rank * 1000)
-            np.random.seed(seed + rank * 1000)
-            return env
-        return init_env
-    if n_rollout_threads == 1:
-        return MASyncVectorEnv([get_env_fn(0)])
-    else:
-        return MASyncVectorEnv([get_env_fn(i) for i in range(n_rollout_threads)])
-    
+
 
 def sample_agents(model, num_agents):
-    curr_num_agents = model.nagents
-    model.agents = np.random.choice(model.agents, size=num_agents)
+    if model.nagents!=num_agents:
+        model.agents = np.random.choice(model.agents, size=num_agents)
     return model
 
 def run(config):
@@ -69,9 +37,8 @@ def run(config):
 
 
     testStatAccumulation = 10
-    # env = make_parallel_env(config.env_id, 1, config.seed, config.discrete_action,testStatAccumulation)
-    env = make_parallel_env(config.env_id, config.n_rollout_threads, config.seed,
-                            config.discrete_action, num_agents=config.n_agents, action_step=config.action_step)
+    env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, mode, testFlag,
+                            config.episode_duration, num_agents=config.n_agents, action_step=config.action_step)
 
     # env.set_Testing(True)
     maddpg = MADDPG.init_from_save(run_dir)
@@ -98,7 +65,6 @@ def run(config):
                                                 ep_i + 1 + config.n_rollout_threads,
                                                 config.n_episodes))
                 obs = env.reset()
-                obs = np.array(obs) # cast to array of (rollouts, agents, observations)
                 step = 0
                 maddpg.prep_rollouts(device='cpu')
                 
@@ -116,7 +82,7 @@ def run(config):
                     actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
                     # print(actions)
                     next_obs, rewards, dones, infos = env.step(actions)
-                    next_obs = np.array(next_obs) # cast to array of (rollouts, agents, observations)
+
                     obs = next_obs
                     t += config.n_rollout_threads
                     total_reward += rewards[0]
