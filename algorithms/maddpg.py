@@ -34,6 +34,8 @@ class MADDPG(object):
                                  hidden_dim=hidden_dim,
                                  **params)
                        for params in agent_init_params]
+        self.central_critic = self.agents[0].critic # relook and finish the code
+        self.central_target_critic = self.agents[0].target_critic # relook and finish the code
         self.agent_init_params = agent_init_params
         self.gamma = gamma
         self.tau = tau

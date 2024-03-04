@@ -23,9 +23,10 @@ wandb.init(
 
 reward_type = "Global"
 # reward_type = "Local"
-mode = False
+# reward_type = "Individual"
+GUI = True
 testFlag = False
-USE_CUDA = False  # torch.cuda.is_available()
+USE_CUDA = torch.cuda.is_available()
 
 
 def runner(config):
@@ -50,7 +51,7 @@ def runner(config):
     if not USE_CUDA:
         torch.set_num_threads(config.n_training_threads)
 
-    env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, mode, testFlag,
+    env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, GUI, testFlag,
                             config.episode_duration, num_agents=config.n_agents, action_step=config.action_step)
     # print(env.action_space)
     # print(env.observation_space)
@@ -119,9 +120,11 @@ def runner(config):
             t += config.n_rollout_threads
             if reward_type=="Global":
                 total_reward += float(rewards[0][0])
+            elif reward_type=="Individual":
+                temp_reward = np.mean(rewards)
+                total_reward += temp_reward
             else:
-                total = np.sum(rewards)
-                temp_reward = total/50
+                temp_reward = np.mean(rewards)
                 total_reward += temp_reward
             
             val_losses = []
@@ -186,7 +189,7 @@ if __name__ == '__main__':
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
-    parser.add_argument("--n_agents", default=1, type=int)
+    parser.add_argument("--n_agents", default=10, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1000, type=int)
     parser.add_argument("--episode_duration", default=400, type=int)

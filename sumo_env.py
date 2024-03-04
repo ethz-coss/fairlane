@@ -43,11 +43,13 @@ class SUMOEnv(Env):
 		if testFlag == False:
 			# self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
 			# self._routeFileName = "sumo_configs/LargeTestNetwork.rou.xml"   
-			self._networkFileName = "sumo_configs/Grid1.net.xml"
+			self._networkFileName = "sumo_configs/GridNoInternalLink.net.xml"
 			self._routeFileName = "sumo_configs/routes.rou.xml"  
 		else:
+			# self._networkFileName = "sumo_configs/Grid1.net.xml"
+			# self._routeFileName = "sumo_configs/routes.rou.xml"  
 			self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
-			self._routeFileName = "sumo_configs/LargeTestNetwork.rou.xml"   
+			self._routeFileName = "sumo_configs/LTN_Density1_CAV20.rou.xml"   
 
 		# self.network = net.readNet(self._networkFileName)
 
@@ -59,6 +61,7 @@ class SUMOEnv(Env):
 		self._sumo_seed = 42
 		self._reward_type = "Global" 
 		# self._reward_type = "Local" 
+		# self._reward_type = "Individual"
 		self.withGUI = mode
 		self.action_steps = action_step
 		self.episode_duration = episode_duration
@@ -85,6 +88,9 @@ class SUMOEnv(Env):
 		self.lastActionDict = {}
 		self.lastTimeLossRLAgents = {}
 		self._lastOverAllTimeLoss = {}
+		self._lastEdge = {}
+		self._lastLane = {}
+		self._nextLane = {}
 		self._currentOverAllTimeLoss = {}
 		self._lastOverAllWaitingTime = {}
 		self._throughputAfter = {}
@@ -103,12 +109,18 @@ class SUMOEnv(Env):
 		self._beforePriorityForRLAgent = {}
 		self._afterPriorityForRLAgent = {}
 		self._listOfLocalRLAgents = {}
+		self._BeforeSpeed = {}
+		self._AfterSpeed = {}
+		self._BeforeCAVSpeed = {}
+		self._AfterCAVSpeed = {}
+  
 		self._releventEdgeId = []
+		self._rlLaneID = {}
 		self._timeLossThreshold = 60
-		self._lane_clearing_distance_threshold = 30
+		self._lane_clearing_distance_threshold = 50
 		self._lane_clearing_distance_threshold_RL = 5
-		self._lane_clearing_distance_threshold_state = 30
-		self._laneChangeAttemptDuration = 25 #seconds
+		self._lane_clearing_distance_threshold_state = 50
+		self._laneChangeAttemptDuration = 2 #seconds
 		self._weightCAVPriority = 1 #3
 		self._weightRLWeightingTime = 1
 		self._weightCAVWeightingTime = 1 #2
@@ -127,6 +139,8 @@ class SUMOEnv(Env):
 		self._average_priorityLane_occupancy = 0
 		self._average_throughput = 0
 		self._average_PMx_emission = 0
+		self._average_LaneChange_number = 0
+		self._collisionCounter = 0
 
 		for edge in self._allEdgeIds:
 			if edge.find(":") == -1:
@@ -148,8 +162,8 @@ class SUMOEnv(Env):
 		# priority_actions = ['0','1','2']
 		# configure spaces
 		# self._num_observation = [len(self.getState(f'RL_{i}')) for i in range(self.n)]
-		self._num_observation = 1
-		# self._num_observation = self._n_features*self._stateVehicleCount + 1
+		self._num_observation = 9
+		# self._num_observation = self._n_features*self._stateVehicleCount + 2
 		self._num_actions = 2
 		# self._num_actions = [len(priority_actions), len(priority_actions)]
 		# self._num_observation = [len(Agent(self, i, self.edge_agents[0]).getState()) for i in range(self._num_lane_agents)]*len(self.edge_agents)
@@ -182,41 +196,69 @@ class SUMOEnv(Env):
 	# 	state = []
 	# 	#detect all vehicle that is within the threshold distance for states. 
 		
+ 		
 	# 	#Get the edgeID on which the RL agent is:
 	# 	edge_id = self.traci.vehicle.getRoadID(agent_id)
 	# 	lane_id = self.traci.vehicle.getLaneID(agent_id)	
 	# 	agent_speed = self.traci.vehicle.getSpeed(agent_id)
-	# 	priorityLane_id = edge_id + "_0"
+  
+		
+	# 	features = []
+  	
 	# 	# print(edge_id,agent_id)
 	# 	nextNodeID = self._net.getEdge(edge_id).getToNode().getID() # gives the intersection/junction ID
 	# 	# now found the edges that is incoming to this junction
 	# 	incomingEdgeList = self._net.getNode(nextNodeID).getIncoming()
+	# 	edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
+	# 	occupancy = 0
+	# 	n_external_edges_counter = 0
+	# 	for e_id in edge_list_incoming: 
+	# 		#only add non-internal road occupancy
+	# 		if e_id.find(":") == -1:
+	# 			occupancy+= self.traci.edge.getLastStepOccupancy(e_id)
+	# 			n_external_edges_counter+=1
+		
+	# 	features.append(occupancy/n_external_edges_counter)
 
 	# 	#count all  CAV vehicle behind this RL agent and within clearingThresholdDistance
 	# 	agent_lane_pos = self.traci.vehicle.getLanePosition(agent_id)
 	# 	agent_pos = self.traci.vehicle.getPosition(agent_id)
 	# 	all_vehicle = self.traci.edge.getLastStepVehicleIDs(edge_id)
+	# 	#loop through all vehicle and only store CAV and RL agents
+	# 	cav_rl_agents = []
+	# 	for v in all_vehicle:
+	# 		priority_type = self.traci.vehicle.getTypeID(v)
+	# 		if priority_type=="cav-priority" or priority_type=="rl-priority" or priority_type=="rl-default":
+	# 			cav_rl_agents.append(v)
 	# 	edge_length = self.traci.lane.getLength(lane_id)
 	# 	agent_pos_fromIntersection = edge_length - agent_lane_pos
-	# 	features = []
+		
 	# 	features.append(agent_speed/25)
+	# 	# features.append(occupancyNextLane)
+	# 	# features.append(occupancyCurrentLane)
+	# 	# features.append(occupancyCurrentPriorityLane)
+	# 	# features.append(occupancyNextPriorityLane)
+  
+	# 	cav_rl_agents.remove(agent_id)
 	# 	if agent_pos_fromIntersection > self._statePerimeter:
 	# 		#then only consider vehicle of single edge on which the agent is plying
 	# 		#randomly select 10 vehicles from this list
 	# 		# all_vehicle = list(dict.fromkeys(all_vehicle))
-	# 		count = min(len(all_vehicle),self._stateVehicleCount)
-	# 		random_list_vehicles = random.sample(all_vehicle, count)
+	# 		count = min(len(cav_rl_agents),self._stateVehicleCount)
+	# 		random_list_vehicles = random.sample(cav_rl_agents, count)
 	# 	else:
 	# 		#consider all incoming edge vehicles including the edge on which the agent is plying
 	# 		edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
 	# 		all_vehicle_list = []
-	# 		for v in all_vehicle:
+	# 		for v in cav_rl_agents:
 	# 			all_vehicle_list.append(v)
 	# 		for e_id in edge_list_incoming:   
 	# 			all_vehicle = self.traci.edge.getLastStepVehicleIDs(e_id)
 	# 			if len(all_vehicle)>0:
 	# 				for v in all_vehicle:
-	# 					all_vehicle_list.append(v)
+	# 					priority_type = self.traci.vehicle.getTypeID(v)
+	# 					if priority_type=="cav-priority" or priority_type=="rl-priority" or priority_type=="rl-default":
+	# 						all_vehicle_list.append(v)
 	# 		#randomly select 10 vehicles from this list
 	# 		# all_vehicle_list = list(dict.fromkeys(all_vehicle_list))
 	# 		all_vehicle_list.remove(agent_id)
@@ -280,8 +322,31 @@ class SUMOEnv(Env):
 		lane_id = self.traci.vehicle.getLaneID(agent_id)			
 		priorityLane_id = edge_id + "_0"
 		# print(edge_id,agent_id)
+		# if edge_id == "":
+		# 	#load last state
+		# 	edge_id = self._lastEdge[agent_id]
+		# 	lane_id = self._lastLane[agent_id]
+		# 	nextLane = self._nextLane[agent_id]
+		# else:
+		# 	self._lastEdge[agent_id] = edge_id
+		# 	self._lastLane[agent_id] = lane_id
+
+		listt = self.traci.vehicle.getNextLinks(agent_id)
+		nextLane = listt[0][0]
+		self._nextLane[agent_id] = nextLane
+
+		routeList = self.traci.vehicle.getRoute(agent_id)
+		nextPriorityLane_id = nextLane.split("_")[0] + "_0"
+		#check occupancy of that lane
+		# occupancyNextLane = self.traci.lane.getLastStepOccupancy(nextLane)
+		# occupancyCurrentLane = self.traci.lane.getLastStepOccupancy(lane_id)
+		occupancyCurrentEdge = self.traci.edge.getLastStepOccupancy(edge_id)
+		# occupancyCurrentPriorityLane = self.traci.lane.getLastStepOccupancy(priorityLane_id)
+		occupancyNextPriorityLane = self.traci.lane.getLastStepOccupancy(nextPriorityLane_id)
+  
 		nextNodeID = self._net.getEdge(edge_id).getToNode().getID() # gives the intersection/junction ID
 		# now found the edges that is incoming to this junction
+		
 		incomingEdgeList = self._net.getNode(nextNodeID).getIncoming()
 
 		#count all  CAV vehicle behind this RL agent and within clearingThresholdDistance
@@ -299,14 +364,51 @@ class SUMOEnv(Env):
 					cavCount+=1
 	
 		#find next edge in the route for the RL agent
-		list = self.traci.vehicle.getNextLinks(agent_id)
-		nextLane = list[0][0]
-		nextPriorityLane_id = nextLane.split("_")[0] + "_0"
-		#check occupancy of that lane
-		occupancyNextLane = self.traci.lane.getLastStepOccupancy(nextLane)
-		occupancyCurrentLane = self.traci.lane.getLastStepOccupancy(lane_id)
-		occupancyCurrentPriorityLane = self.traci.lane.getLastStepOccupancy(priorityLane_id)
-		occupancyNextPriorityLane = self.traci.lane.getLastStepOccupancy(nextPriorityLane_id)
+
+		
+		#traffic light phase related observations		
+		remainingDuration = 1
+		if priorityLane_id.find(":")!=-1 or lane_id.find(":")!=-1:
+			phaseState = 0
+		else:      
+			lanesList = self.traci.trafficlight.getControlledLanes(nextNodeID)
+			lanesListLink = self.traci.trafficlight.getControlledLinks(nextNodeID)
+			index = -1
+			indexOfConcern = 999
+			for element in lanesListLink:
+				index+=1
+				currentLane = element[0][0]
+				NextLane = element[0][1]
+				if currentLane == lane_id:
+					if NextLane == nextLane:
+						indexOfConcern = index
+						
+
+			trafficState = self.traci.trafficlight.getRedYellowGreenState(nextNodeID)
+			phaseDuration = self.traci.trafficlight.getPhaseDuration(nextNodeID)
+			remainingPhaseDuration = self.traci.trafficlight.getNextSwitch(nextNodeID) - self.traci.simulation.getTime()
+			remainingDuration = remainingPhaseDuration/phaseDuration			
+			trafficStateList = list(trafficState)
+			# positionOf = lanesList.index(priorityLane_id)
+			if indexOfConcern!=999:
+				phase = trafficStateList[indexOfConcern]
+			else:
+				phase = "G"
+			phaseState = 0
+			if phase.find("G")!=-1 or phase.find("g")!=-1:
+				phaseState = 1
+    			
+		
+		# edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
+		# occupancy = 0
+		# n_external_edges_counter = 0
+		# for e_id in edge_list_incoming: 
+		# 	#only add non-internal road occupancy
+		# 	if e_id.find(":") == -1:
+		# 		occupancy+= self.traci.edge.getLastStepOccupancy(e_id)
+		# 		n_external_edges_counter+=1
+		
+		# avg_occ_all_incoming_lane = occupancy/n_external_edges_counter
 
 		# # print(edge_id)
 		# #Get the intersection the RL agent is going towards:
@@ -328,57 +430,60 @@ class SUMOEnv(Env):
 		allvehiclecounter = 0
 		edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
 		all_cav_count = 0
-		for e_id in edge_list_incoming:   
+		for e_id in edge_list_incoming: 
 			all_vehicle = self.traci.edge.getLastStepVehicleIDs(e_id)
 			for veh in all_vehicle:
-				allvehiclecounter+=1
-				elapsed_vehicle_time = self.traci.vehicle.getDeparture(veh)			
-				accumulated_time_loss+=self.traci.vehicle.getTimeLoss(veh) / (elapsed_simulation_time - elapsed_vehicle_time)
-				# total_waiting_time+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
-				priority_type = self.traci.vehicle.getTypeID(veh)
-				if priority_type=="passenger-priority" or priority_type=="rl-priority" or priority_type=="cav-priority" or priority_type=="heuristic-priority":
-					priorityVehicleCount+=1
-				elif priority_type=="rl-priority":
-					localPriorityRLVehicleCount+=1
-				elif priority_type=="rl-default":
-					localNonPriorityRLVehicleCount+=1
-					localRLAgentList.append(veh)
-				elif priority_type=="cav-priority":
-					cav_lane_position = self.traci.vehicle.getLanePosition(veh)
-					diff = agent_lane_pos - cav_lane_position
-					if diff <=self._lane_clearing_distance_threshold_state and diff>0:
-						all_cav_count+=1
+				if veh !=agent_id:
+					allvehiclecounter+=1
+					# elapsed_vehicle_time = self.traci.vehicle.getDeparture(veh)			
+					# accumulated_time_loss+=self.traci.vehicle.getTimeLoss(veh) / (elapsed_simulation_time - elapsed_vehicle_time)
+					# total_waiting_time+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+					priority_type = self.traci.vehicle.getTypeID(veh)				
+					if priority_type=="rl-priority":
+						land_id = e_id + "_0"
+						rl_lane_position = self.traci.lane.getLength(land_id) - self.traci.vehicle.getLanePosition(veh)
+						if rl_lane_position < 50:
+							localPriorityRLVehicleCount+=1
+					elif priority_type=="rl-default":
+						localNonPriorityRLVehicleCount+=1
+						localRLAgentList.append(veh)
+					elif priority_type=="cav-priority":
+						if e_id!=edge_id:
+							cav_lane_position = self.traci.vehicle.getLanePosition(veh)
+							diff = agent_lane_pos - cav_lane_position
+							if diff <=self._lane_clearing_distance_threshold_state and diff>0:
+								all_cav_count+=1
 				else:
 					nonPriorityVehicleCount+=1
 		self._listOfLocalRLAgents[agent_id] = localRLAgentList	
 		self._numberOfCAVApproachingIntersection[agent_id] = all_cav_count
 		elapsed_its_own_time = self.traci.vehicle.getDeparture(agent_id)	
-		itsOwnTImeLoss = self.traci.vehicle.getTimeLoss(agent_id) / (elapsed_simulation_time - elapsed_its_own_time)
+		# itsOwnTImeLoss = self.traci.vehicle.getTimeLoss(agent_id) / (elapsed_simulation_time - elapsed_its_own_time)
 		# self.lastTimeLoss[agent_id] = itsOwnTImeLoss
 		if self.traci.vehicle.getTypeID(agent_id)=="rl-priority":
 			itsPriorityAccess = 1			
 		else:
 			itsPriorityAccess = 0
 		# print(self._sumo_step)
-		rlObs=0;cavObs=0
-		if len(self._currentRLWaitingTimeForSpecificRLAgent)>0:
-			if self._currentRLWaitingTimeForSpecificRLAgent[agent_id] - self._lastRLWaitingTimeForSpecificRLAgent[agent_id] > 0:
-				rlObs = 0
-			else:
-				rlObs = 1
+		# rlObs=0;cavObs=0
+		# if len(self._currentRLWaitingTimeForSpecificRLAgent)>0:
+		# 	if self._currentRLWaitingTimeForSpecificRLAgent[agent_id] - self._lastRLWaitingTimeForSpecificRLAgent[agent_id] > 0:
+		# 		rlObs = 0
+		# 	else:
+		# 		rlObs = 1
 	
-			if self._currentCAVWaitingTimeForSpecificRLAgent[agent_id] - self._lastCAVWaitingTimeForSpecificRLAgent[agent_id]>0:
-				cavObs = 0
-			else:
-				cavObs = 1
-		lane_index = int(lane_id.split("_")[1])
-		if itsPriorityAccess==1:
-			localPriorityRLVehicleCount=localPriorityRLVehicleCount-1
-		else:
-			localNonPriorityRLVehicleCount=localNonPriorityRLVehicleCount-1
+		# 	if self._currentCAVWaitingTimeForSpecificRLAgent[agent_id] - self._lastCAVWaitingTimeForSpecificRLAgent[agent_id]>0:
+		# 		cavObs = 0
+		# 	else:
+		# 		cavObs = 1
+		# lane_index = int(lane_id.split("_")[1])
+		# if itsPriorityAccess==1:
+		# 	localPriorityRLVehicleCount=localPriorityRLVehicleCount-1
+		# else:
+		# 	localNonPriorityRLVehicleCount=localNonPriorityRLVehicleCount-1
 		# state = [itsOwnTImeLoss/self.action_steps,itsPriorityAccess,priorityVehicleCount/normalization_totalNumberOfVehicle,nonPriorityVehicleCount/normalization_totalNumberOfVehicle,accumulated_time_loss/self.action_steps,cavCount/normalization_totalNumberOfCAV,all_cav_count/normalization_totalNumberOfVehicle]
 		# state = [itsPriorityAccess,
-        #    (edge_length - agent_lane_pos)/edge_length, # distance from approaching intersection
+		#    (edge_length - agent_lane_pos)/edge_length, # distance from approaching intersection
 		#    lane_index/2,
 		#    occupancyCurrentLane,
 		#    occupancyCurrentPriorityLane,
@@ -389,9 +494,12 @@ class SUMOEnv(Env):
 		#    nonPriorityVehicleCount/allvehiclecounter,
 		#    cavCount/allvehiclecounter,
 		#    all_cav_count/allvehiclecounter
-        #    ]
-		state = [cavCount]
-           
+		#    ]
+		# state = [cavCount,all_cav_count,(edge_length - agent_lane_pos)/edge_length, occupancyCurrentLane,occupancyCurrentPriorityLane,occupancyNextLane,occupancyNextPriorityLane]
+		
+		state = [itsPriorityAccess,cavCount,all_cav_count,localPriorityRLVehicleCount,(edge_length - agent_lane_pos)/edge_length,occupancyCurrentEdge,occupancyNextPriorityLane,phaseState,remainingDuration]
+			
+
           
 		# if agent_id == "RL_1":
 		# 	print(state)
@@ -461,19 +569,21 @@ class SUMOEnv(Env):
 		self._average_priorityLane_occupancy = 0
 		self._average_throughput = 0
 		self._average_PMx_emission = 0
+		self._average_LaneChange_number = 0
 		self._episodeStep = 0	
 		self._average_throughput = 0
+		self._collisionCounter = 0
 
-		## ADD RL AGENTS DYNAMICALLY
-		for veh in self.controlled_vehicles:
-			veh_id = veh.name
-			self.traci.vehicle.addFull(veh_id, '', typeID='rl-priority', depart=0)
-			init_edge, = self.traci.vehicle.getRoute(veh_id) # a random edge was assigned
-			route = np.random.choice(self._allEdgeIds, size=100, replace=True).tolist()
-			route = [init_edge] + route
-			self.traci.vehicle.setVia(veh_id, route)
-			self.traci.vehicle.rerouteTraveltime(veh_id)
-			self.traci.vehicle.moveTo(veh_id, f'{route[0]}_0', 0)
+		# ## ADD RL AGENTS DYNAMICALLY
+		# for veh in self.controlled_vehicles:
+		# 	veh_id = veh.name
+		# 	self.traci.vehicle.addFull(veh_id, '', typeID='rl-priority', depart=0)
+		# 	init_edge, = self.traci.vehicle.getRoute(veh_id) # a random edge was assigned
+		# 	route = np.random.choice(self._allEdgeIds, size=100, replace=True).tolist()
+		# 	route = [init_edge] + route
+		# 	self.traci.vehicle.setVia(veh_id, route)
+		# 	self.traci.vehicle.rerouteTraveltime(veh_id)
+		# 	self.traci.vehicle.moveTo(veh_id, f'{route[0]}_0', 0)
 
 	def initializeRLAgentStartValues(self):
 		for rl_agent in self.original_rl_vehicleID:
@@ -566,6 +676,7 @@ class SUMOEnv(Env):
 						# speed = self.traci.vehicle.getSpeed(heuristic)
 						if diff > 0:
 							# print(str(diff),"--",str(heuristic_lane_position),"--",str(cav_lane_position))
+							self._collisionCounter+=1
 							self.traci.vehicle.setType(rl,"rl-default")
 							flag = True
 							break
@@ -574,6 +685,7 @@ class SUMOEnv(Env):
 						# speed = self.traci.vehicle.getSpeed(heuristic)
 						# if speed>0.2:
 						self.traci.vehicle.setType(rl,"rl-priority")
+						self._collisionCounter+=1
 						# counterPriority+=1
 						# if cav_lane_position ==-999:
 						# 	print(str(diff),"--",str(heuristic_lane_position),"--","No CAV present")
@@ -689,7 +801,11 @@ class SUMOEnv(Env):
 	def computeCAVReward(self,rl_agent):
 		before_priority = self._beforePriorityForRLAgent[rl_agent]
 		after_priority = self._afterPriorityForRLAgent[rl_agent]
+		which_lane = self.traci.vehicle.getLaneID(rl_agent)
+		bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
 
+		
+  
 		if self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] > 0:
 			reward = +0.5
 		elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]>0:
@@ -707,8 +823,34 @@ class SUMOEnv(Env):
 		else:
 			reward = 0
 
-		if before_priority!=after_priority:
-			reward-=0.01
+		speed = self.traci.vehicle.getSpeed(rl_agent)
+		speedReward = +0.5
+		if speed < 0.1  and which_lane.find("_0")>-1:
+			speedReward = -0.5
+  		# if self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] > 0 and after_priority=="rl-default":
+		# 	reward = +0.5
+		# elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]>0 and after_priority=="rl-default":
+		# 	reward = +0.5
+		# elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] > 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] == 0:
+		# 	reward = -0.5
+		# elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] > 0:
+		# 	reward = -0.5
+		# elif self._numberOfCAVWithinClearingDistanceAfter[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceBefore[rl_agent] == 0 and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]==0 and after_priority=="rl-priority":
+		# 	reward = +0.5
+		# # elif before_priority =="rl-default" and after_priority=="rl-priority" and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]==0:
+		# # 	reward = +0.5
+		# # elif before_priority =="rl-priority" and after_priority=="rl-priority" and self._numberOfCAVWithinClearingDistanceOnPLAfter[rl_agent]==0:
+		# # 	reward = +0.5
+		# else:
+		# 	reward = 0
+
+		# # if before_priority!=after_priority:
+		# # 	reward-=0.01
+   
+		# currentLaneIndex = self.traci.vehicle.getLaneIndex(rl_agent)	
+		# if currentLaneIndex != "0" and after_priority=="rl-default":
+		# 	reward+=0.1
+			
 		# reward = 0
 		# if before_priority=="rl-priority" and after_priority=="rl-priority":
 		# 	reward = -0.5
@@ -796,7 +938,7 @@ class SUMOEnv(Env):
 		# else:
 		# 	reward = 0
 		
-		return reward
+		return reward + speedReward
 
 	def computePriorityLaneThroughput(self,rl_agent):
 		reward = +0.5
@@ -813,10 +955,12 @@ class SUMOEnv(Env):
 		if self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] >0 and self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent]> 0:			
 			if self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent]> 0:
 			# cav_delay = -(self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]
-				cav_delay = -(self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]   
+				# cav_delay = -(self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]   
+				cav_delay = -0.5
 			else:
 				if self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent]!=self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent]:
-					cav_delay = +(self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent]
+					# cav_delay = +(self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent] - self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent])/self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent]
+					cav_delay = +0.5
 				else:
 					cav_delay=0
 		else:
@@ -860,6 +1004,26 @@ class SUMOEnv(Env):
 
 		return reward
 		
+	def computeRLSpeedReward(self,rl_agent):
+		reward = 0
+		beforeSpeed = self._BeforeSpeed[rl_agent]
+		afterSpeed = self._AfterSpeed[rl_agent]
+		if afterSpeed >=beforeSpeed:
+			reward = +0.5
+		else:
+			reward = -0.5
+		return reward
+
+	def computeCAVSpeedReward(self,rl_agent):
+		reward = 0
+		beforeSpeed = self._BeforeCAVSpeed[rl_agent]
+		afterSpeed = self._AfterCAVSpeed[rl_agent]
+		if afterSpeed >=beforeSpeed:
+			reward = +0.5
+		else:
+			reward = -0.5
+		return reward
+
 	# get reward for a particular agent
 	def _get_reward(self,agent):
 		agent_id = f'RL_{agent.id}'
@@ -867,10 +1031,13 @@ class SUMOEnv(Env):
 		if len(self.lastActionDict) !=0:				
 			# reward_cooperative = self.computeCooperativeReward(agent_id)
 			# reward_overallNetwork = self.computeOverallNetworkReward(agent_id)
-			# reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
+			reward_cavWaitingTime = self.computeCAVAccumulatedWaitingTime(agent_id)
 			# reward_RLWaitingTime = self.computeRLAccumulatedWaitingTime(agent_id)
+			# reward_speed_RL = self.computeRLSpeedReward(agent_id)
+			# reward_speed_CAV = self.computeCAVSpeedReward(agent_id)
 			# reward_priorityLane_Throughput = self.computePriorityLaneThroughput(agent_id)
 			reward_cav_priority = self.computeCAVReward(agent_id)
+			
 			# print("reward: " + str(reward_cav_priority))
 			# print("-------------------------")
 			# reward_priority_lane_Speed = self.computeAvgSpeedPriorityLaneReward(agent_id)
@@ -878,7 +1045,8 @@ class SUMOEnv(Env):
 			# overall_reward = reward_cav_priority
 			# print(overall_reward)		
 			# overall_reward = self._weightCAVPriority*reward_cav_priority + self._weightRLWeightingTime*reward_RLWaitingTime + self._weightCAVWeightingTime*reward_cavWaitingTime
-			overall_reward = reward_cav_priority
+			# overall_reward = reward_cav_priority + 0.2*reward_RLWaitingTime + 0.2*reward_cavWaitingTime
+			overall_reward = reward_cav_priority + reward_cavWaitingTime
 			# overall_reward = reward_cav_priority
 
 
@@ -1063,13 +1231,24 @@ class SUMOEnv(Env):
 		allVehicleList = self.traci.vehicle.getIDList()
 		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
 		elapsed_simulation_time = self.traci.simulation.getTime()
+		
 		if lastTimeStepFlag:
 			self._listOfVehicleIdsInConcern.clear()
 			for rl_agent in self._rl_vehicleID:
 				
-				elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
-				itsOwnTImeLoss = self.traci.vehicle.getTimeLoss(rl_agent) / (elapsed_simulation_time - elapsed_its_own_time)
-				self.lastTimeLossRLAgents[rl_agent] = itsOwnTImeLoss
+				which_lane = self.traci.vehicle.getLaneID(rl_agent)
+				bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
+				# bestlane="999"
+				# if bestLanesTuple[0][1] > bestLanesTuple[1][1]: # it checks the length that can be driven without lane
+				# 	bestlane = "0"
+				# else:
+				# 	bestlane = "1"
+     
+				# if self.edgeIdInternal(which_lane)==True:
+				# 	t = 0
+				# elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
+				# itsOwnTImeLoss = self.traci.vehicle.getTimeLoss(rl_agent) / (elapsed_simulation_time - elapsed_its_own_time)
+				# self.lastTimeLossRLAgents[rl_agent] = itsOwnTImeLoss
 				edge_id = self.traci.vehicle.getRoadID(rl_agent)
 				self._beforePriorityForRLAgent[rl_agent] = self.traci.vehicle.getTypeID(rl_agent)
 				agent_lane_pos = self.traci.vehicle.getLanePosition(rl_agent)
@@ -1077,6 +1256,7 @@ class SUMOEnv(Env):
 				# edge_id = self.traci.vehicle.getRoadID(rl_agent)
 				lane_id = self.traci.vehicle.getLaneID(rl_agent)
 
+				self._BeforeSpeed[rl_agent] = self.traci.vehicle.getSpeed(rl_agent)
 				# inductionloop_id = "det_" + str(lane_id.split("_")[0]) + "_0_1_passenger"
 				
 				# throughput = self.traci.inductionloop.getLastIntervalVehicleNumber(inductionloop_id)
@@ -1089,23 +1269,26 @@ class SUMOEnv(Env):
 				all_cav_vehicle = self.traci.edge.getLastStepVehicleIDs(edge_id)
 				
 				total_waiting_time_cav = 0
+				total_cav_speed = 0
 				for cav in all_cav_vehicle:
 					priority_type = self.traci.vehicle.getTypeID(cav)
-					if priority_type=="cav-priority": 
-						vehicle_list.append(cav)
-						total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(cav)
-		
+					if priority_type=="cav-priority": 		
 						cav_lane_position = self.traci.vehicle.getLanePosition(cav)
 						diff = agent_lane_pos - cav_lane_position
 						if diff<= self._lane_clearing_distance_threshold_state and diff > 0:
 							cavCount+=1
+							vehicle_list.append(cav)
+							total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(cav)
+							total_cav_speed+= self.traci.vehicle.getSpeed(cav)
+      
+       
+
 
 				if lane_id.split("_")[1] == "0":
 					self._numberOfCAVWithinClearingDistanceBefore[rl_agent] = cavCount
 				else:
 					self._numberOfCAVWithinClearingDistanceBefore[rl_agent] = 0
-
-   
+  
 		
 				# accumulated_time_loss = 0
 				# total_waiting_time=0
@@ -1114,27 +1297,40 @@ class SUMOEnv(Env):
 				# # if self.edgeIdInternal(edge_id):
 				# # 	print("Internal Edge ID - ",edge_id) #change it to the main edge_id
 				# vehicle_list =[]
-				# nextNodeID = self._net.getEdge(edge_id).getToNode().getID() # gives the intersection/junction ID
-				# # now found the edges that is incoming to this junction
-				# incomingEdgeList = self._net.getNode(nextNodeID).getIncoming()
-				# edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
-				# for e_id in edge_list_incoming:   
-				# 	all_vehicle = self.traci.edge.getLastStepVehicleIDs(e_id)
-				# 	if len(all_vehicle)>0:
-				# 		vehicle_list+=all_vehicle
-				# 	for veh in all_vehicle:
-				# 		elapsed_vehicle_time = self.traci.vehicle.getDeparture(veh)
-				# 		accumulated_time_loss+=self.traci.vehicle.getTimeLoss(veh)/(elapsed_simulation_time - elapsed_vehicle_time)
-				# 		total_waiting_time+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
-				# 		priority_type = self.traci.vehicle.getTypeID(veh)
-				# 		if priority_type=="cav-priority": 
-				# 			total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+				nextNodeID = self._net.getEdge(edge_id).getToNode().getID() # gives the intersection/junction ID
+				# now found the edges that is incoming to this junction
+				incomingEdgeList = self._net.getNode(nextNodeID).getIncoming()
+				edge_list_incoming = [e.getID() for e in incomingEdgeList] # list of all edges excluding internal
+				for e_id in edge_list_incoming:   
+					all_vehicle = self.traci.edge.getLastStepVehicleIDs(e_id)
+					# if len(all_vehicle)>0:
+					# 	vehicle_list+=all_vehicle
+					for veh in all_vehicle:
+						# elapsed_vehicle_time = self.traci.vehicle.getDeparture(veh)
+						# accumulated_time_loss+=self.traci.vehicle.getTimeLoss(veh)/(elapsed_simulation_time - elapsed_vehicle_time)
+						# total_waiting_time+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+						# priority_type = self.traci.vehicle.getTypeID(veh)
+						if priority_type=="cav-priority": 
+							veh_lane_position = self.traci.vehicle.getLanePosition(veh)
+							land_id = e_id + "_0"
+							dist_from_intersection = self.traci.lane.getLength(land_id) - veh_lane_position
+							diff = agent_lane_pos - veh_lane_position
+							cav_speed = self.traci.vehicle.getSpeed(veh)
+							if diff<= self._lane_clearing_distance_threshold_state and diff > 0:
+								vehicle_list.append(veh)
+								total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+								total_cav_speed+= self.traci.vehicle.getSpeed(veh)
+							elif cav_speed <0.1:
+								vehicle_list.append(veh)
+								total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+								total_cav_speed+= self.traci.vehicle.getSpeed(veh)
+
 				
 				self._listOfVehicleIdsInConcern[rl_agent] = vehicle_list
 				self._lastRLWaitingTimeForSpecificRLAgent[rl_agent] = self.traci.vehicle.getAccumulatedWaitingTime(rl_agent)
 				# print("Before Waiting Time for RL = ",self._lastRLWaitingTimeForSpecificRLAgent[rl_agent])
 				# print("Before Waiting Time for CAV = ",total_waiting_time_cav)
-				
+				self._BeforeCAVSpeed[rl_agent] = total_cav_speed
 				self._lastCAVWaitingTimeForSpecificRLAgent[rl_agent] = total_waiting_time_cav				
 				# self._lastOverAllTimeLoss[rl_agent] = accumulated_time_loss
 				# self._lastOverAllWaitingTime[rl_agent] = total_waiting_time
@@ -1144,6 +1340,8 @@ class SUMOEnv(Env):
 				accumulated_time_loss = 0
 				total_waiting_time=0
 				total_waiting_time_cav=0
+				total_cav_speed = 0
+				self._AfterSpeed[rl_agent] = self.traci.vehicle.getSpeed(rl_agent)
 				self._afterPriorityForRLAgent[rl_agent] = self.traci.vehicle.getTypeID(rl_agent)
 				for veh in self._listOfVehicleIdsInConcern[rl_agent]:
 					if veh in allVehicleList:
@@ -1153,8 +1351,16 @@ class SUMOEnv(Env):
 						priority_type = self.traci.vehicle.getTypeID(veh)
 						if priority_type=="cav-priority": 
 							total_waiting_time_cav+=self.traci.vehicle.getAccumulatedWaitingTime(veh)
+							total_cav_speed += self.traci.vehicle.getSpeed(veh)
 
 				lane_id = self.traci.vehicle.getLaneID(rl_agent)
+				bestLanesTuple = self.traci.vehicle.getBestLanes(rl_agent)
+
+				# bestlane="999"
+				# if bestLanesTuple[0][1] > bestLanesTuple[1][1]: # it checks the length that can be driven without lane
+				# 	bestlane = "0"
+				# else:
+				# 	bestlane = "1"
 				# inductionloop_id = "det_" + str(lane_id.split("_")[0]) + "_0_1_passenger"
 				# throughput = self.traci.inductionloop.getLastIntervalVehicleNumber(inductionloop_id)
 				# self._throughputAfter[rl_agent] = throughput
@@ -1164,9 +1370,8 @@ class SUMOEnv(Env):
 				# print("Current Waiting Time for CAV = ",total_waiting_time_cav)
 				self._currentCAVWaitingTimeForSpecificRLAgent[rl_agent] = total_waiting_time_cav
 				# self._currentOverAllWaitingTime[rl_agent] = total_waiting_time
-    
 				agent_lane_pos = self.traci.vehicle.getLanePosition(rl_agent)
-    
+				self._AfterCAVSpeed[rl_agent] = total_cav_speed
 				edge_id = self.traci.vehicle.getRoadID(rl_agent)
 				#check if agent is on a priority lane. Count only those CAV's for it. RL agent on other lanes will have CAV count as zero
 				# lane_id = self.traci.vehicle.getLaneID(rl_agent)
@@ -1190,7 +1395,7 @@ class SUMOEnv(Env):
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		allVehicleList = self.traci.vehicle.getIDList()
 		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle = self.getSplitVehiclesList(allVehicleList)
-		
+		# self._collisionCounter+= self.traci.simulation.getCollidingVehiclesNumber()
 		# avg_speed_heuristic=0;currentTimeLoss_Heuristic=0;currentWaitingTime_Heuristic=0
 		# for heuristic_agent in self._heuristic_vehicleID:
 		# 	avg_speed_heuristic+=self.traci.vehicle.getSpeed(heuristic_agent)
@@ -1201,15 +1406,25 @@ class SUMOEnv(Env):
 		# self._avg_speed_heuristic += avg_speed_heuristic/len(self._heuristic_vehicleID)
 		# self._currentWaitingTime_Heuristic += currentWaitingTime_Heuristic/len(self._heuristic_vehicleID)
 
+
 		avg_speed_rl=0;currentTimeLoss_rl=0;currentWaitingTime_rl=0
+		total_lane_change_all_RL = 0
 		for rl_agent in self._rl_vehicleID:
+			# laneIndex = self.traci.vehicle.getLaneIndex(rl_agent)
+			# if laneIndex!=0 and self.traci.vehicle.getTypeID(rl_agent)=="rl-priority":
+			# 	self.traci.vehicle.changeLane(rl_agent,0,self._laneChangeAttemptDuration) 
+			if self._rlLaneID[rl_agent] != self.traci.vehicle.getLaneID(rl_agent):
+				total_lane_change_all_RL+=1
+				self._rlLaneID[rl_agent] = self.traci.vehicle.getLaneID(rl_agent)
+    
 			avg_speed_rl+=self.traci.vehicle.getSpeed(rl_agent)
-			elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
-			currentTimeLoss_rl += self.traci.vehicle.getTimeLoss(rl_agent)
+			# elapsed_its_own_time = self.traci.vehicle.getDeparture(rl_agent)
+			# currentTimeLoss_rl += self.traci.vehicle.getTimeLoss(rl_agent)
 			currentWaitingTime_rl += self.traci.vehicle.getAccumulatedWaitingTime(rl_agent)
-		self._currentTimeLoss_rl += currentTimeLoss_rl/len(self._rl_vehicleID)
+		# self._currentTimeLoss_rl += currentTimeLoss_rl/len(self._rl_vehicleID)
 		self._avg_speed_rl += avg_speed_rl/len(self._rl_vehicleID)
 		self._currentWaitingTime_rl += currentWaitingTime_rl/len(self._rl_vehicleID)
+		self._average_LaneChange_number+= total_lane_change_all_RL/len(self._rl_vehicleID)
 
 		# avg_speed_npc=0;currentTimeLoss_npc=0;currentWaitingTime_npc=0
 		# for npc_agent in self._npc_vehicleID:
@@ -1224,22 +1439,22 @@ class SUMOEnv(Env):
 		avg_speed_cav = 0;currentTimeLoss_cav=0;currentWaitingTime_cav=0
 		for cav_agent in self._cav_vehicleID:
 			avg_speed_cav+=self.traci.vehicle.getSpeed(cav_agent)
-			elapsed_its_own_time = self.traci.vehicle.getDeparture(cav_agent)
-			currentTimeLoss_cav += self.traci.vehicle.getTimeLoss(cav_agent) 
+			# elapsed_its_own_time = self.traci.vehicle.getDeparture(cav_agent)
+			# currentTimeLoss_cav += self.traci.vehicle.getTimeLoss(cav_agent) 
 			currentWaitingTime_cav += self.traci.vehicle.getAccumulatedWaitingTime(cav_agent)
-		self._currentTimeLoss_cav += currentTimeLoss_cav/len(self._cav_vehicleID)
+		# self._currentTimeLoss_cav += currentTimeLoss_cav/len(self._cav_vehicleID)
 		self._avg_speed_cav += avg_speed_cav/len(self._cav_vehicleID)
 		self._currentWaitingTime_cav += currentWaitingTime_cav/len(self._cav_vehicleID)
 
 
-		average_priorityLane_occupancy = 0;average_PMx_emission=0
-		for edge in self._releventEdgeId:
-			#check only for priority lane
-			priority_lane = edge + "_0"
-			average_priorityLane_occupancy += self.traci.lane.getLastStepOccupancy(priority_lane)
-			average_PMx_emission += self.traci.edge.getPMxEmission(edge)
-		self._average_priorityLane_occupancy += average_priorityLane_occupancy/len(self._releventEdgeId)
-		self._average_PMx_emission += average_PMx_emission/len(self._releventEdgeId)
+		# average_priorityLane_occupancy = 0;average_PMx_emission=0
+		# for edge in self._releventEdgeId:
+		# 	#check only for priority lane
+		# 	priority_lane = edge + "_0"
+		# 	average_priorityLane_occupancy += self.traci.lane.getLastStepOccupancy(priority_lane)
+		# 	average_PMx_emission += self.traci.edge.getPMxEmission(edge)
+		# self._average_priorityLane_occupancy += average_priorityLane_occupancy/len(self._releventEdgeId)
+		# self._average_PMx_emission += average_PMx_emission/len(self._releventEdgeId)
 
 			
 		# for rl_agent in self._rl_vehicleID:
@@ -1261,24 +1476,24 @@ class SUMOEnv(Env):
 
 	def getTestStats(self):
 	
-			avg_delay_RL=0;avg_speed_RL=0;avg_delay_NPC=0;avg_speed_NPC=0;avg_occupancy_priorityLane=0;avg_PMx_emission=0
+			avg_delay_RL=0;avg_speed_RL=0;avg_delay_NPC=0;avg_speed_NPC=0;avg_occupancy_priorityLane=0;avg_PMx_emission=0;total_lane_change_number=0
 			avg_delay_CAV=0;avg_speed_CAV=0;avg_delay_Heuristic=0;avg_speed_Heuristic=0;avg_delay_ALLButCAV=0;avg_speed_AllButCAV=0
 			
 			# avg_delay_CAV = self._currentTimeLoss_cav/self.action_steps
 			avg_delay_CAV = self._currentWaitingTime_cav/self.action_steps
-			avg_speed_CAV = self._avg_speed_cav/self.action_steps
+			avg_speed_CAV = self._avg_speed_cav/300
 
 			# avg_delay_RL = self._currentTimeLoss_rl/self.action_steps
 			avg_delay_RL = self._currentWaitingTime_rl/self.action_steps
-			avg_speed_RL = self._avg_speed_rl/self.action_steps
-
+			avg_speed_RL = self._avg_speed_rl/300
+   
 			# # avg_delay_NPC = self._currentTimeLoss_npc/self.action_steps
 			# avg_delay_NPC = self._currentWaitingTime_npc/self.action_steps
 			# avg_speed_NPC = self._avg_speed_npc/self.action_steps
 
-			avg_occupancy_priorityLane = self._average_priorityLane_occupancy/self.action_steps
-			avg_PMx_emission = self._average_PMx_emission/self.action_steps
-   
+			avg_occupancy_priorityLane = self._average_priorityLane_occupancy/300
+			avg_PMx_emission = self._average_PMx_emission/300
+			print(self._collisionCounter)
 			#throughput computation using loop detector
 			throughput = 0
 			all_LD = self.traci.inductionloop.getIDList()
@@ -1287,8 +1502,9 @@ class SUMOEnv(Env):
 			if len(all_LD) > 0:
 				self._average_throughput = throughput/len(all_LD)
 
-			avg_throughput = (self._average_throughput*3600)/(self.action_steps*self._testStatAccumulation)
+			avg_throughput = (self._average_throughput*3600)/(300)
 
+			total_lane_change_number = self._average_LaneChange_number
 			# # avg_delay_Heuristic = self._currentTimeLoss_Heuristic/self.action_steps
 			# avg_delay_Heuristic = self._currentWaitingTime_Heuristic/self.action_steps
 			# avg_speed_Heuristic = self._avg_speed_heuristic/self.action_steps
@@ -1298,12 +1514,12 @@ class SUMOEnv(Env):
 			
 			# headers = ['avg_delay_RL', 'avg_speed_RL','avg_delay_NPC', 'avg_speed_NPC','congestion(avg_occupancy_network))','avg_PMx_emission']
 			# values = [avg_delay_RL, avg_speed_RL, avg_delay_NPC,avg_speed_NPC,avg_occupancy_network,avg_PMx_emission]
-			headers = ['avg_delay_CAV','avg_delay_RL','avg_speed_CAV','avg_speed_RL','Throughput','avg_PMx_emission','Episode_Step',"Seed"]
-			values = [avg_delay_CAV,avg_delay_RL,avg_speed_CAV,avg_speed_RL,avg_throughput,avg_PMx_emission,self._episodeStep-1,self._sumo_seed]
+			headers = ['Avg_WaitingTime_CAV (5 mins)','Avg_WaitingTime_RL (5 mins)','avg_speed_CAV','avg_speed_RL','Throughput','Lane_Change_Number','total_lane_change_number (5 mins)','Episode_Step',"Seed"]
+			values = [avg_delay_CAV,avg_delay_RL,avg_speed_CAV,avg_speed_RL,avg_throughput,self._collisionCounter,total_lane_change_number,self._episodeStep-1,self._sumo_seed]
 			
 			self._currentTimeLoss_cav=0;self._avg_speed_cav=0;self._currentTimeLoss_rl=0;self._avg_speed_rl=0;self._currentTimeLoss_npc=0;self._avg_speed_npc=0
 			self._average_priorityLane_occupancy=0;self._average_throughput=0;self._average_PMx_emission=0;self._currentTimeLoss_Heuristic=0;self._avg_speed_heuristic=0
-			self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
+			self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0;self._average_LaneChange_number=0;self._collisionCounter=0
 			return headers, values
 	
 	def make_action(self,actions):
@@ -1326,7 +1542,7 @@ class SUMOEnv(Env):
 		for agent in self.agents:
 			agent.done = False
 
-		self._episodeStep+=1
+		self._episodeStep+=3 # it was 1. Made it to 3 for teststat logs. Might break train
 		self._sumo_step = 0
 		
 		if actionFlag == True:
@@ -1341,10 +1557,17 @@ class SUMOEnv(Env):
 			# print(simple_actions)
 			actionFlag = False
 		
-		
+		allVehicleList = self.traci.vehicle.getIDList()
+		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
 		# self.traci.simulation.saveState('sumo_configs/savedstate.xml')
 		# self.initializeRLAgentStartValues()
+	
 		vehicleCount = 0
+		
+		# if len(self._rlLaneID) == 0:
+		for rl_agent in self._rl_vehicleID:			
+			self._rlLaneID[rl_agent] = self.traci.vehicle.getLaneID(rl_agent)
+   
 		while self._sumo_step <= self.action_steps:
 			# advance world state
 			self.collectObservationPerStep()
@@ -1359,8 +1582,7 @@ class SUMOEnv(Env):
 		# print(len(self.traci.inductionloop.getIDList()))
 
 		self.collectObservation(False) #lastTimeStepFlag
-		allVehicleList = self.traci.vehicle.getIDList()
-		self._npc_vehicleID,self._rl_vehicleID,self._heuristic_vehicleID,self._cav_vehicleID,ratioOfHaltVehicle= self.getSplitVehiclesList(allVehicleList)
+		
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
 		
 		# if len(self._rl_vehicleID)!=self.n:
@@ -1395,6 +1617,9 @@ class SUMOEnv(Env):
 			self._currentReward = reward_n
 			reward = np.sum(reward_n)/self.n
 			newReward_n = [reward] *self.n
+		elif self._reward_type == "Individual":
+			self._currentReward = reward_n
+			newReward_n = reward_n
 		else:
 			#find sum of all local agent reward including the one in concern
 			for agent in self.agents:
@@ -1414,7 +1639,7 @@ class SUMOEnv(Env):
 		# print("Reward = " + str(reward_n))
 		# self._lastReward = reward_n[0]
 		# # print("reward: " + str(self._lastReward))
-		# print(reward_n)
+		# print(newReward_n)
 		return obs_n, newReward_n, done_n, info_n
 
 	# set env action for a particular agent
@@ -1424,17 +1649,24 @@ class SUMOEnv(Env):
 		#index 1 = # set priority
   
 		
-		# self.setRLAgentTogglePriority() # to simulate human decision-making
+		self.setRLAgentTogglePriority() # to simulate human decision-making
 		for agent in self.agents: #loop through all agent
 			agent_id = f'RL_{agent.id}'
 			action = self.lastActionDict[agent_id]
 			# print("action: " + str(action))
-			# action = 2
+			action = 2
 			# if action==2:
 			# print(action)
 			if action == 0:
+				if self.traci.vehicle.getTypeID(agent_id)!="rl-default":
+					self._collisionCounter+=1
 				self.traci.vehicle.setType(agent_id,"rl-default")
+				
 			elif action == 1:
+				# lane_index = self.traci.vehicle.getLaneIndex(agent_id)
+				# if lane_index!=0 and self.traci.vehicle.getTypeID(agent_id)!="rl-priority":
+				if self.traci.vehicle.getTypeID(agent_id)!="rl-priority":
+					self._collisionCounter+=1
 				self.traci.vehicle.setType(agent_id,"rl-priority")
 			# if self.traci.vehicle.getTypeID(agent_id)=="rl-priority": #check if agent  
 			# 	if action == 0:
@@ -1471,22 +1703,27 @@ class SUMOEnv(Env):
 			except:
 				import traci
 		seed = self._sumo_seed
+  
+		
+  
 		if self._isTestFlag == False:
 			# self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
 			# sumoConfig = "sumo_configs/LargeTestNetwork.sumocfg"
-			self._networkFileName = "sumo_configs/Grid1.net.xml"
-			sumoConfig = "sumo_configs/sim.sumocfg"
+			self._networkFileName = "sumo_configs/GridNoInternalLink.net.xml"
+			sumoConfig = "sumo_configs/sim.sumocfg"   
 		else:
+			# self._networkFileName = "sumo_configs/Grid1.net.xml"
+			# sumoConfig = "sumo_configs/sim.sumocfg"
 			self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
 			sumoConfig = "sumo_configs/LargeTestNetwork.sumocfg"
-
-		self.sumoCMD = ["-c", sumoConfig, "--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),
-				 "-W","--no-step-log","--lanechange.duration",str(2),"--statistic-output","output.xml"]
-
+			
+		self.sumoCMD = ["-c", sumoConfig, "--waiting-time-memory",str(self.action_steps),"--time-to-teleport", str(-1),"--scale",str(1),
+					"-W","--collision.action","none", "--lanechange.duration",str(2),"--statistic-output","output.xml"]
+  
 		if withGUI:
 			sumoBinary = checkBinary('sumo-gui')
-			# self.sumoCMD += ["--start"]
-			self.sumoCMD += ["--start", "--quit-on-end"]
+			self.sumoCMD += ["--start"]
+			# self.sumoCMD += ["--start", "--quit-on-end"]
 		else:	
 			sumoBinary = checkBinary('sumo')
 

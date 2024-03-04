@@ -70,7 +70,7 @@ def train(config):
     state_dim = unwrapped_env._num_observation
     action_dim = unwrapped_env._num_actions
     BATCH_SIZE = config.batch_size
-    ROLL_OUT_N_STEPS = 20 #(config.episode_duration//config.action_step)//4 # so we can call a train every 20 steps 
+    ROLL_OUT_N_STEPS = (config.episode_duration//config.action_step) # so we can call a train every 20 steps 
     actor_hidden_size = config.hidden_dim
     critic_hidden_size = config.hidden_dim
     actor_lr = config.lr
@@ -163,23 +163,23 @@ def evaluate(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="mappo_run28", type=str) # runXX is performing the best on training data
+    parser.add_argument("--run_id", default="mappo_run5", type=str) # runXX is performing the best on training data
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--seed",
                         default=42, type=int,
                         help="Random seed")
-    parser.add_argument("--option", default='train', choices=['train', 'test'], type=str)
+    parser.add_argument("--option", default='test', choices=['train', 'test'], type=str)
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--n_agents", default=1, type=int)
-    parser.add_argument("--buffer_length", default=1024, type=int)
+    parser.add_argument("--buffer_length", default=80, type=int)
     parser.add_argument("--n_episodes", default=5000, type=int)
     parser.add_argument("--episode_duration", default=400, type=int)
     parser.add_argument("--action_step", default=5, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=128, type=int)
     parser.add_argument("--batch_size",
-                        default=1024, type=int,
+                        default=80, type=int,
                         help="Batch size for model training")
     parser.add_argument("--save_interval", default=30, type=int)
     parser.add_argument("--hidden_dim", default=128, type=int)
