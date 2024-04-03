@@ -14,7 +14,8 @@ from tqdm import tqdm
 from utils.common import make_parallel_env
 
     
-use_wandb = os.environ.get('WANDB_MODE', 'disabled') # can be online, offline, or disabled
+    
+use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
 wandb.init(
   project="prioritylane",
   tags=["MultiAgent", "RL"],
@@ -24,9 +25,9 @@ wandb.init(
 reward_type = "Global"
 # reward_type = "Local"
 # reward_type = "Individual"
-GUI = True
+GUI = False
 testFlag = False
-USE_CUDA = torch.cuda.is_available()
+USE_CUDA = False #torch.cuda.is_available()
 
 
 def runner(config):
@@ -141,7 +142,7 @@ def runner(config):
                 for u_i in range(config.n_rollout_threads):
                     print("---------------Training----------------")
                     train_counter+=1
-                    print(train_counter)
+                    # print(train_counter)
                     for a_i in range(maddpg.nagents):
                         sample = replay_buffer.sample(config.batch_size,
                                                     to_gpu=USE_CUDA, norm_rews=normalize_rewards)
@@ -189,9 +190,9 @@ if __name__ == '__main__':
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
-    parser.add_argument("--n_agents", default=10, type=int)
+    parser.add_argument("--n_agents", default=20, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=1000, type=int)
+    parser.add_argument("--n_episodes", default=2000, type=int)
     parser.add_argument("--episode_duration", default=400, type=int)
     parser.add_argument("--action_step", default=2, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)

@@ -8,17 +8,19 @@ from algorithms.maddpg import MADDPG
 
 from sumo_env import SUMOEnv
 from matplotlib import pyplot as plt
-import wandb
+# import wandb
 from tqdm import tqdm
 import csv
 from utils.common import make_parallel_env
 
 
-GUI = True
-testFlag = False
+GUI = False     
+testFlag = True
 USE_CUDA = False  # torch.cuda.is_available()
-
-
+SotaFlag = False
+ModelFlag = True
+Baseline1Flag = False
+Baseline2Flag = False
 
 def sample_agents(model, num_agents):
     if model.nagents!=num_agents:
@@ -50,16 +52,25 @@ def run(config):
     smoothed_total_reward = 0
     pid = os.getpid()
     # testResultFilePath = f"results/Run22_Density1_CAV20.csv" 
-    testResultFilePath = f"results/SOTA.csv" 
-    # testResultFilePath = f"results/MultiAgent_Test_{config.run_id}.csv"  
+    CAV=50
+    HDV=100
+    NPC=0
+    # folder = "Baseline1"
+    # folder = "Baseline2"
+    folder = "Model"
+    # folder = "SOTA"
+    # folder = "dummy"
+
+    testResultFilePath = f"results/{config.network}/{folder}/{folder}_CAV{CAV}_HDV{HDV}_NPC{NPC}_test_stats.csv"
+    # testResultFilePath = "dummy.csv"
     with open(testResultFilePath, 'w', newline='') as file:
         writer = csv.writer(file)
         written_headers = False
 
-        for seed in list(range(3,4)): # realizations for averaging - 47
+        for seed in list(range(3,8)): # realizations for averaging - 47
             # seed = 2
-            env.seed(seed)
-            env.set_sumo_seed(seed)
+            # env.seed(seed)
+            env.envs[0].set_sumo_seed(seed)
             for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
                 total_reward = 0
                 print("Episodes %i-%i of %i" % (ep_i + 1,
@@ -88,7 +99,7 @@ def run(config):
                     t += config.n_rollout_threads
                     total_reward += rewards[0]
                     # if et_i%testStatAccumulation==0 and et_i>0:
-                    if step%100==0 or step==1:
+                    if step%100==0:
                         headers, values = env.envs[0].getTestStats()
                         if step!=1:
                             if not written_headers:
@@ -100,8 +111,20 @@ def run(config):
                 # show reward
                 smoothed_total_reward = smoothed_total_reward * 0.9 + total_reward * 0.1
                 scores.append(smoothed_total_reward)
-        
+               
+
+                if SotaFlag:   
+                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/SOTA_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+                elif ModelFlag:                 
+                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Model_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+                elif Baseline1Flag:                 
+                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline1_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+                elif Baseline2Flag:                 
+                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline2_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+
+   
         env.close()
+        
       
     plt.plot(scores)
     plt.xlabel('episodes')
@@ -114,19 +137,20 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run28", type=str) # runXX is performing the best on training data 
+    parser.add_argument("--run_id", default="run16", type=str) # runXX is performing the best on training data 
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
+    parser.add_argument("--network", default="MSN", type=str)
     parser.add_argument("--seed",
                         default=1, type=int,
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     
-    parser.add_argument("--n_agents", default=10, type=int)
+    parser.add_argument("--n_agents", default=228, type=int) #219
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1, type=int)
-    parser.add_argument("--episode_duration", default=3750, type=int) # 100 for warmup
+    parser.add_argument("--episode_duration", default=3600, type=int) # 100 for warmup
     parser.add_argument("--action_step", default=2, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=128, type=int)
