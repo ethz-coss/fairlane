@@ -9,14 +9,40 @@ import os, sys
 import random
 import traci
 from scripts import utils
-sys.path.append('../') #allows loading of agent.py
-# from agent import Agent
 import xml.etree.ElementTree as ET
 import math
 from itertools import combinations
 import sumolib
 from sumolib import net
+from lxml import etree as ET
+from utils.common import convertToFlows
 
+def generate_routefile(base_routefile, out_route_file, cav_rate, hdv_rate, n_agents, baseline):
+	cav_period, npc_period, _n_agents = convertToFlows(cav_rate,hdv_rate)
+	print(f'WARNING: n_agents not the same as output of convertToFlows: {n_agents} vs {_n_agents}',
+	      'Following convertToFlows')
+	data = ET.Element('routes')
+	base_routes = ET.parse(base_routefile)
+	vehicles = base_routes.findall('vehicle')
+	vtypes = base_routes.findall('vType')
+	flows = base_routes.findall('flow')
+	for vtype in vtypes:
+		if vtype.attrib['id']=='rl-priority':
+			if baseline=='baseline1':
+				vtype.attrib['maxSpeed'] = '13.89'
+		data.append(vtype)
+	for flow in flows:
+		if flow.attrib['type']=='passenger-default':
+			flow.attrib['period'] = f'exp({npc_period:.4f})'
+		if flow.attrib['type']=='cav-priority':
+			flow.attrib['period'] = f'exp({cav_period:.4f})'
+		data.append(flow)
+	for i, vehicle in enumerate(vehicles):
+		if i==_n_agents:
+			break
+		data.append(vehicle)
+	with open(out_route_file, "wb") as f:
+		f.write(ET.tostring(data, pretty_print=True))
 
 class Agent:
     def __init__(self, env, n_agent, edge_agent=None):
@@ -34,12 +60,12 @@ class SUMOEnv(Env):
                  observation_callback=None, info_callback=None,
                  done_callback=None, shared_viewer=True,mode='gui',testStatAccumulation=10,
 				 testFlag='False',simulation_end=36000, num_agents=50, action_step=30,
-				 episode_duration=None):
+				 episode_duration=None, cav_rate=10, hdv_rate=50, scenario_flag='model'):
 		self.pid = os.getpid()
 		self.sumoCMD = []
 		self._simulation_end = simulation_end
 		self._mode = mode
-		self.SotaFlag = False
+		self.SotaFlag = scenario_flag=='sota'
 		self._testStatAccumulation = testStatAccumulation
 		if testFlag == False:
 			# self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
@@ -47,6 +73,7 @@ class SUMOEnv(Env):
 			self._networkFileName = "sumo_configs/Train/GridNoInternalLink.net.xml"
 			self._routeFileName = "sumo_configs/Train/routes.rou.xml"
 			self._warmup_steps = 100
+			self.sumoConfig = "sumo_configs/Train/sim.sumocfg"   
 
 			# self._networkFileName = "sumo_configs/GridRectangle.net.xml"
 			# self._routeFileName = "sumo_configs/GridRectangle.rou.xml"
@@ -55,9 +82,13 @@ class SUMOEnv(Env):
 		else:
 			# self._networkFileName = "sumo_configs/Grid1.net.xml"
 			# self._routeFileName = "sumo_configs/routes.rou.xml"  
+
 			self._networkFileName = "sumo_configs/Test/MSN_Grid_rebuildTrafficLight.net.xml"
-			self._routeFileName = "sumo_configs/Test/MSN_Grid.rou.xml"
+			self._baseRouteFileName = "sumo_configs/Test/MSN_Grid_base.rou.xml"
+			self._routeFileName = f"sumo_configs/Test/rou_{cav_rate}_{hdv_rate}_{scenario_flag}.rou.xml"
+			generate_routefile(self._baseRouteFileName, self._routeFileName, cav_rate, hdv_rate, num_agents, scenario_flag)
 			self._warmup_steps = 300
+			self.sumoConfig = "sumo_configs/Test/MSN_Grid.sumocfg"
 
 			# self._networkFileName = "sumo_configs/GridNoInternalLink.net.xml"
 			# self._routeFileName = "sumo_configs/routes.rou.xml"
@@ -908,7 +939,7 @@ class SUMOEnv(Env):
 		self._sumo_step = 0
 		obs_n = []
 		seed = self._sumo_seed
-		self.traci.load(self.sumoCMD + ["--seed", str(seed)] + ['-n', self._networkFileName, '-r', self._routeFileName])
+		self.traci.load(self.sumoCMD + ["--seed", str(seed)])
 		self.resetAllVariables()
 
 		#WARMUP PERIOD
@@ -1806,31 +1837,12 @@ class SUMOEnv(Env):
 				import traci
 		seed = self._sumo_seed
   
-		
-  
-		if self._isTestFlag == False:
-			# self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
-			# sumoConfig = "sumo_configs/LargeTestNetwork.sumocfg"
-			self._networkFileName = "sumo_configs/Train/GridNoInternalLink.net.xml"
-			sumoConfig = "sumo_configs/Train/sim.sumocfg"   
-			# self._networkFileName = "sumo_configs/GridRectangle.net.xml"
-			# sumoConfig = "sumo_configs/GridRectangle.sumocfg"
-
-		else:
-			# self._networkFileName = "sumo_configs/Grid1.net.xml"
-			# sumoConfig = "sumo_configs/sim.sumocfg"
-			self._networkFileName = "sumo_configs/Test/MSN_Grid_rebuildTrafficLight.net.xml"
-			sumoConfig = "sumo_configs/Test/MSN_Grid.sumocfg"
-			# self._networkFileName = "sumo_configs/GridNoInternalLink.net.xml"
-			# sumoConfig = "sumo_configs/sim.sumocfg"
-			# self._networkFileName = "sumo_configs/GridRectangle.net.xml"
-			# sumoConfig = "sumo_configs/GridRectangle.sumocfg"
 
 		if self._isTestFlag==True:
-			self.sumoCMD = ["-c", sumoConfig, "--waiting-time-memory",str(self.action_steps+1),"--time-to-teleport", str(1),"--scale",str(1),
+			self.sumoCMD = ["-c", self.sumoConfig, "-r", self._routeFileName, "--waiting-time-memory",str(self.action_steps+1),"--time-to-teleport", str(1),"--scale",str(1),
 			"-W","--lanechange-output",f"laneChange_stats_{seed}.xml","--collision.action","teleport","--statistic-output","output.xml","--edgedata-output",f"edge_stats_{seed}.xml"]
 		else:				
-			self.sumoCMD = ["-c", sumoConfig, "--waiting-time-memory",str(self.action_steps+1),"--time-to-teleport", str(-1),"--scale",str(1),
+			self.sumoCMD = ["-c", self.sumoConfig, "-r", self._routeFileName, "--waiting-time-memory",str(self.action_steps+1),"--time-to-teleport", str(-1),"--scale",str(1),
 				"-W","--collision.action","none"]
 		# "-W", "--default.carfollowmodel", "IDM",
 		if withGUI:

@@ -17,10 +17,17 @@ from utils.common import make_parallel_env
 GUI = False     
 testFlag = True
 USE_CUDA = False  # torch.cuda.is_available()
-SotaFlag = False
-ModelFlag = True
-Baseline1Flag = False
-Baseline2Flag = False
+# SotaFlag = False
+# ModelFlag = True
+# Baseline1Flag = False
+# Baseline2Flag = False
+
+folders = {
+    'baseline1': 'Baseline1',
+    'baseline2': 'Baseline2',
+    'model': 'Model',
+    'sota': 'SOTA'
+}
 
 def sample_agents(model, num_agents):
     if model.nagents!=num_agents:
@@ -28,6 +35,7 @@ def sample_agents(model, num_agents):
     return model
 
 def run(config):
+    scenario_flag = config.scenario # can be model, sota, baseline1, baseline2
     model_dir = Path('./models') / config.env_id / config.model_name
     curr_run = config.run_id + config.model_id
     run_dir = model_dir / curr_run
@@ -37,10 +45,14 @@ def run(config):
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
 
+    CAV=config.cav
+    HDV=config.hdv
+    NPC=100-HDV
 
     testStatAccumulation = 10
     env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, GUI, testFlag,
-                            config.episode_duration, num_agents=config.n_agents, action_step=config.action_step)
+                            config.episode_duration, num_agents=config.n_agents, action_step=config.action_step,
+                            cav_rate=CAV, hdv_rate=HDV, scenario_flag=scenario_flag)
 
     # env.set_Testing(True)
     maddpg = MADDPG.init_from_save(run_dir)
@@ -52,15 +64,14 @@ def run(config):
     smoothed_total_reward = 0
     pid = os.getpid()
     # testResultFilePath = f"results/Run22_Density1_CAV20.csv" 
-    CAV=50
-    HDV=100
-    NPC=0
+
     # folder = "Baseline1"
     # folder = "Baseline2"
-    folder = "Model"
+    folder = folders[scenario_flag]
     # folder = "SOTA"
     # folder = "dummy"
 
+    os.makedirs(f'results/{config.network}/{folder}/', exist_ok=True)
     testResultFilePath = f"results/{config.network}/{folder}/{folder}_CAV{CAV}_HDV{HDV}_NPC{NPC}_test_stats.csv"
     # testResultFilePath = "dummy.csv"
     with open(testResultFilePath, 'w', newline='') as file:
@@ -113,13 +124,13 @@ def run(config):
                 scores.append(smoothed_total_reward)
                
 
-                if SotaFlag:   
+                if scenario_flag=='sota':   
                     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/SOTA_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
-                elif ModelFlag:                 
+                elif scenario_flag=='model':                 
                     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Model_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
-                elif Baseline1Flag:                 
+                elif scenario_flag=='baseline1':                 
                     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline1_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
-                elif Baseline2Flag:                 
+                elif scenario_flag=='baseline2':                 
                     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline2_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
 
    
@@ -141,6 +152,9 @@ if __name__ == '__main__':
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--network", default="MSN", type=str)
+    parser.add_argument("--scenario", default="model", type=str, choices=folders.keys())
+    parser.add_argument("--cav", default=10, type=int)
+    parser.add_argument("--hdv", default=50, type=int)
     parser.add_argument("--seed",
                         default=1, type=int,
                         help="Random seed")

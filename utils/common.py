@@ -1,7 +1,11 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from gym.vector import SyncVectorEnv
 from gym.vector.utils import concatenate
 import numpy as np
-from sumo_env import SUMOEnv
+
+if TYPE_CHECKING:
+    from sumo_env import SUMOEnv
 
 from copy import deepcopy
 
@@ -44,11 +48,11 @@ class MASyncVectorEnv(SyncVectorEnv):
         return np.transpose(obs, transpose_idx), rews, dones, infos
 
 
-def make_parallel_env(sumoenv: SUMOEnv, n_rollout_threads, seed, mode, testFlag, episode_duration, num_agents=50, action_step=30):
+def make_parallel_env(sumoenv: SUMOEnv, n_rollout_threads, seed, mode, testFlag, episode_duration, num_agents=50, action_step=30, **kwargs):
     def get_env_fn(rank):
         def init_env():
             env = sumoenv(mode=mode, testFlag=testFlag, num_agents=num_agents, action_step=action_step,
-                          episode_duration=episode_duration)
+                          episode_duration=episode_duration, **kwargs)
             env.seed(seed + rank * 1000)
             np.random.seed(seed + rank * 1000)
             return env
@@ -57,3 +61,21 @@ def make_parallel_env(sumoenv: SUMOEnv, n_rollout_threads, seed, mode, testFlag,
         return MASyncVectorEnv([get_env_fn(0)])
     else:
         return MASyncVectorEnv([get_env_fn(i) for i in range(n_rollout_threads)])
+
+
+def convertToFlows(cpn, hpn):
+    flowToRouteDict = {0: 1, 210: 36, 420: 80, 630: 120, 840: 175, 1050: 228, 1260: 250, 1470: 289, 1680: 300, 1890: 319, 2100: 338}
+    vph = 2100
+
+    cav_count = (vph/100)*cpn
+    hdv_count = (vph/100)*hpn
+    npc_count = vph - (cav_count+hdv_count)
+
+    cav_rate = cav_count/3600
+    hdv_rate = npc_count/3600
+    if npc_count <= 0:
+        npc_period = 0
+        npc_count = 0
+
+    n_agents = flowToRouteDict[hdv_count]
+    return cav_rate, hdv_rate, n_agents
