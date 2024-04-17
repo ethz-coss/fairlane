@@ -1,0 +1,5 @@
+<additional>
+    <edgeData id="ED_cav" file="edge_stats.xml" vTypes="cav-priority" period="300"/>
+    <edgeData id="ED_rl" file="edge_stats.xml" vTypes="rl-priority rl-default" period="300"/>
+    <edgeData id="ED_npc" file="edge_stats.xml" vTypes="passenger-default" period="300"/>
+</additional>
