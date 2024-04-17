@@ -553,6 +553,8 @@ class SUMOEnv(Env):
 		# 	self.n=86
 		# else:
 		# 	self.n = len(self._rl_vehicleID)
+		print(len(self.agents))
+		print(self.n)
 		assert(len(self.agents)<=self.n)
 		return self.agents
 

@@ -178,15 +178,15 @@ if __name__ == '__main__':
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--network", default="MSN", type=str)
     parser.add_argument("--scenario", default="baseline1", type=str, choices=folders.keys())
-    parser.add_argument("--cav", default=20, type=int)
-    parser.add_argument("--hdv", default=20, type=int)
+    parser.add_argument("--cav", default=30, type=int)
+    parser.add_argument("--hdv", default=0, type=int)
     parser.add_argument("--seed",
                         default=1, type=int,
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     
-    parser.add_argument("--n_agents", default=200, type=int) #219
+    parser.add_argument("--n_agents", default=1, type=int) #219
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1, type=int)
     parser.add_argument("--episode_duration", default=3600, type=int) # 100 for warmup
