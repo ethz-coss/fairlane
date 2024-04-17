@@ -1,0 +1,8 @@
+<configuration>
+    <input>
+		<net-file value="MSN_Grid_rebuildTrafficLight.net.xml"/>
+        <route-files value="MSN_Grid.rou.xml"/>
+        <additional-files value="MSN_loopDetectors.add.xml, edge_stat_period.add.xml"/>
+    </input>
+ </configuration>
+
