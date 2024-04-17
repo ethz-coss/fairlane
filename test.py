@@ -22,6 +22,8 @@ USE_CUDA = False  # torch.cuda.is_available()
 # Baseline1Flag = False
 # Baseline2Flag = False
 
+modelToRlDict = {}
+
 folders = {
     'baseline1': 'Baseline1',
     'baseline2': 'Baseline2',
@@ -31,7 +33,21 @@ folders = {
 
 def sample_agents(model, num_agents):
     if model.nagents!=num_agents:
-        model.agents = np.random.choice(model.agents, size=num_agents)
+        model.agents = np.random.choice(model.backupAgents, size=num_agents)
+    return model
+
+def dynamic_agents(model,agents):
+    for agent in agents:
+        if agent.id not in modelToRlDict:
+            mod = np.random.choice(model.backupAgents, size=1)[0]
+            modelToRlDict[agent.id] = mod
+
+
+    for key in list(modelToRlDict.keys()):
+        if key not in [agent.id for agent in agents]:
+            del modelToRlDict[key]
+
+    model.agents = np.array(list(modelToRlDict.values()))
     return model
 
 def run(config):
@@ -47,25 +63,28 @@ def run(config):
 
     CAV=config.cav
     HDV=config.hdv
-    NPC=100-HDV
+    NPC=100-(HDV+CAV)
 
-    testStatAccumulation = 10
+    print(CAV,HDV,NPC)
     env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, GUI, testFlag,
                             config.episode_duration, num_agents=config.n_agents, action_step=config.action_step,
                             cav_rate=CAV, hdv_rate=HDV, scenario_flag=scenario_flag)
 
     # env.set_Testing(True)
     maddpg = MADDPG.init_from_save(run_dir)
+    maddpg.backupAgents = maddpg.agents
     maddpg = sample_agents(maddpg, config.n_agents)
-    # assert maddpg.nagents==env.envs[0].n
+    # maddpg = dynamic_agents(maddpg, env.envs[0].agents)
 
+    # assert maddpg.nagents==env.envs[0].n
+    # maddpg.nagents=env.envs[0].n
     t = 0
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
     # testResultFilePath = f"results/Run22_Density1_CAV20.csv" 
 
-    # folder = "Baseline1"
+    # folder = config.scenario
     # folder = "Baseline2"
     folder = folders[scenario_flag]
     # folder = "SOTA"
@@ -78,7 +97,7 @@ def run(config):
         writer = csv.writer(file)
         written_headers = False
 
-        for seed in list(range(3,8)): # realizations for averaging - 47
+        for seed in list(range(3,13)): # realizations for averaging - 47
             # seed = 2
             # env.seed(seed)
             env.envs[0].set_sumo_seed(seed)
@@ -94,11 +113,17 @@ def run(config):
                 episode_length = int(config.episode_duration/(config.action_step + 1))
                 for et_i in range(episode_length):
                     step += 1
+                    number_of_agents = env.envs[0].n
                     torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])),
                                         requires_grad=False)
-                                for i in range(maddpg.nagents)]
+                                for i in range(number_of_agents)]
+                    
+                    #assign models to RL agent
+                    maddpg = dynamic_agents(maddpg, env.envs[0].agents)
                   
                     torch_agent_actions = maddpg.step(torch_obs, explore=False)
+                    while len(torch_agent_actions)<number_of_agents:
+                        torch_agent_actions.append(torch.zeros_like(torch_agent_actions[0]))
                     # convert actions to numpy arrays
                     agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
                     # rearrange actions to be per environment
@@ -106,7 +131,7 @@ def run(config):
                     # print(actions)
                     next_obs, rewards, dones, infos = env.step(actions)
 
-                    obs = next_obs
+                    obs = next_obs                    
                     t += config.n_rollout_threads
                     total_reward += rewards[0]
                     # if et_i%testStatAccumulation==0 and et_i>0:
@@ -124,14 +149,14 @@ def run(config):
                 scores.append(smoothed_total_reward)
                
 
-                if scenario_flag=='sota':   
-                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/SOTA_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
-                elif scenario_flag=='model':                 
-                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Model_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
-                elif scenario_flag=='baseline1':                 
-                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline1_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
-                elif scenario_flag=='baseline2':                 
-                    os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline2_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+                # if scenario_flag=='sota':   
+                #     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/SOTA_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+                # elif scenario_flag=='model':                 
+                #     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Model_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+                # elif scenario_flag=='baseline1':                 
+                #     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline1_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
+                # elif scenario_flag=='baseline2':                 
+                #     os.rename('sumo_configs/Test/edge_stats.xml',  f"results/{config.network}/{folder}/Baseline2_CAV{CAV}_HDV{HDV}_NPC{NPC}_edge_stats_{seed}.xml")
 
    
         env.close()
@@ -148,20 +173,20 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_id", default="PL", type=str)
-    parser.add_argument("--run_id", default="run16", type=str) # runXX is performing the best on training data 
+    parser.add_argument("--run_id", default="run37", type=str) # runXX is performing the best on training data 
     parser.add_argument("--model_id", default="/model.pt", type=str)
     parser.add_argument("--model_name", default="priority_lane", type=str)
     parser.add_argument("--network", default="MSN", type=str)
-    parser.add_argument("--scenario", default="model", type=str, choices=folders.keys())
-    parser.add_argument("--cav", default=10, type=int)
-    parser.add_argument("--hdv", default=50, type=int)
+    parser.add_argument("--scenario", default="baseline1", type=str, choices=folders.keys())
+    parser.add_argument("--cav", default=20, type=int)
+    parser.add_argument("--hdv", default=20, type=int)
     parser.add_argument("--seed",
                         default=1, type=int,
                         help="Random seed")
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     
-    parser.add_argument("--n_agents", default=228, type=int) #219
+    parser.add_argument("--n_agents", default=200, type=int) #219
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--n_episodes", default=1, type=int)
     parser.add_argument("--episode_duration", default=3600, type=int) # 100 for warmup

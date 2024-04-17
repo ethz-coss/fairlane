@@ -3,8 +3,8 @@ import os, sys
 from addLoopDetectors import loopDetector
 from sumolib import net
 
-loopDetectorFileName = "D:\Rohit\prioritylane/sumo_configs/LTN_loopDetectors.add.xml"
-networkFileName = 'D:\Rohit\prioritylane/sumo_configs/LargeTestNetwork.net.xml'
+loopDetectorFileName = "D:/prioritylane/sumo_configs/GridRectange.add.xml"
+networkFileName = 'D:/prioritylane/sumo_configs/GridRectangle.net.xml'
 
 
 step = 0

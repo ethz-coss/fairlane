@@ -14,3 +14,59 @@ A2B2 B2B1 B1C1
 
 
 python "C:\Program Files (x86)\Eclipse\Sumo\tools\randomTrips.py" -n LargeTestNetwork.net.xml -r LTN_Density1_routes.rou.xml  -b 0 --intermediate 100 -o trips.xml -e 4800 --insertion-density 15000
+
+
+netgenerate --rand -o MediumSizeNetwork.net.xml --rand.iterations=10 --default.lanenumber=3 --default.lanewidth=3.2 -j "traffic_light"
+
+netgenerate --rand -o MSN_Grid.net.xml --rand.min-distance=150 --rand.max-distance=250 --rand.min-angle=90 --rand.iterations=55 --rand.neighbor-dist5=0 --rand.neighbor-dist6=0 --rand.grid=True --default.lanenumber=3 --default.lanewidth=3.2 -j "traffic_light"
+
+
+netconvert -s MSN_Grid.net.xml -o MSN_Grid_NIL.net.xml --no-internal-links
+
+netconvert -s MSN_Grid_NIL_Simplified.net.xml -o MSN_Grid_NIL_Simplified.net.xml --geometry.remove
+
+
+
+netconvert -s patched.net.xml -o ./sumo_configs/MSN_Grid_noturn.net.xml --no-turnarounds
+
+
+
+python "C:\Program Files (x86)\Eclipse\Sumo\tools\randomTrips.py" -n ./sumo_configs/MSN_Grid.net.xml -r ./sumo_configs/MSN_GRID_routes.rou.xml  -b 0 --intermediate 100 -o trips.xml -e 4800 --insertion-density 22500
+
+
+
+python "C:\Program Files (x86)\Eclipse\Sumo\tools\findAllRoutes.py" -n ./sumo_configs/MSN_Grid.net.xml -o ./sumo_configs/routes.xml -s -181 -t 809
+
+
+
+
+python "C:\Program Files (x86)\Eclipse\Sumo\tools\randomTrips.py" -n MSN_Grid_rebuildTrafficLight.net.xml -r MSN_Density15000_routes.rou.xml  -b 0 --intermediate 100 -o trips.xml -e 3900 --insertion-rate 1500 --validate
+
+
+
+
+
+
+
+
+
+netconvert -s MSN_Grid_NIL.net.xml -o MSN_Grid_NIL_AllConnection.net.xml --no-left-connections=False
+netconvert -s MSN_Grid_NIL.net.xml -o MSN_Grid_NIL_AllConnection.net.xml --junctions.join=True
+
+netconvert -s MSN_Grid_NIL_AllConnection.net.xml -o MSN_Grid_NIL_AllConnection_Simplified.net.xml --geometry.remove
+
+netconvert -s MSN_Grid_NIL_AllConnection_Simplified.net.xml -o MSN_Grid_NIL_AllConnection_Simplified_TrafficLight.net.xml  --tls.rebuild --tls.default-type static
+
+netconvert -s MSN_Grid_NIL_AllConnection_Simplified.net.xml -o MSN_Grid_NIL_AllConnection_Simplified.net.xml --
+
+netconvert -s MSN_Grid.net.xml -o MSN_Grid_rebuildTrafficLight.net.xml  --tls.rebuild --tls.default-type static
+
+netconvert -s MSN_Grid_rebuildTrafficLight.net.xml -o MSN_Grid_rebuildTrafficLight.net.xml --no-internal-links=False
+
+
+netgenerate --grid -o GridRectangle.net.xml --grid.number=2 --default.lanenumber=3 --default.lanewidth=3.2 --no-turnarounds --no-internal-links
+python "C:\Program Files (x86)\Eclipse\Sumo\tools\randomTrips.py" -n Highway.net.xml -r Highway_routes.rou.xml  -b 0 -e 3800 --insertion-rate 1000
+
+
+
+netconvert -s MSN_Grid_rebuildTrafficLight.net.xml -o MSN_Grid_rebuildTrafficLight.net.xml  --tls.rebuild --tls.default-type static --tls.yellow.time=5 --tls.allred.time=3

@@ -1,8 +1,0 @@
-<configuration>
-    <input>
-		<net-file value="LargeTestNetwork.net.xml"/>
-        <route-files value="LargeTestNetwork.rou.xml"/>
-        <additional-files value="LTN_loopDetectors.add.xml"/>
-    </input>
- </configuration>
-

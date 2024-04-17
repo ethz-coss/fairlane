@@ -36,11 +36,11 @@ def loopDetector(network,edge_list,filename):
             # pos = 0
             # data = [lane_id,loopDetectorId,pos]
             # dataList.append(data)
-            if lane_number=="0":
-                loopDetectorId = "det_" + lane_id + "_" + str(1)
-                pos = length - 5
-                data = [lane_id,loopDetectorId,pos]
-                dataList.append(data)
+            # if lane_number=="0":
+            loopDetectorId = "det_" + lane_id + "_" + str(1)
+            pos = "-10"
+            data = [lane_id,loopDetectorId,pos]
+            dataList.append(data)
 
             
             # print(numberOfSegment)
@@ -48,7 +48,7 @@ def loopDetector(network,edge_list,filename):
 
     # write dataList to a CSV file
     # header = ['Lane_ID','Loop Detector Id', 'Loop Detector Position']
-    with open('D:\Rohit\prioritylane/sumo_configs/loopDetectorList.csv', 'w', encoding='UTF8', newline='') as f:
+    with open('D:/prioritylane/sumo_configs/loopDetectorList.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
         # write the header
         # writer.writerow(header)
@@ -64,15 +64,15 @@ vehicleTypeMap = {'passenger': 'custom2 custom1 passenger'}
 def writeAdditionalFilesForLoopDetector(edge_list):
    
     data = ET.Element('additionals')
-    with open('D:\Rohit\prioritylane/sumo_configs/loopDetectorList.csv', 'r') as file:
+    with open('D:/prioritylane/sumo_configs/loopDetectorList.csv', 'r') as file:
         csvreader = csv.reader(file)
         for row in csvreader:
             for key, vtype in vehicleTypeMap.items():
-                s_elem1 = ET.SubElement(data, 'e1Detector')
+                s_elem1 = ET.SubElement(data, 'inductionLoop')
                 s_elem1.set('id', f'{row[1]}_{key}')
                 s_elem1.set('lane', row[0])
                 s_elem1.set('pos', row[2])
-                s_elem1.set('freq', str(900))
+                s_elem1.set('freq', str(300))
                 s_elem1.set('vTypes', vtype)
                 s_elem1.set('file', 'loopDetectors.out.xml')
 
@@ -85,7 +85,7 @@ def writeAdditionalFilesForLoopDetector(edge_list):
  
     # Opening a file under the name `items2.xml`,
     # with operation mode `wb` (write + binary)
-    with open("D:\Rohit\prioritylane/sumo_configs/LTN_loopDetectors.add.xml", "wb") as f:
+    with open("D:/prioritylane/sumo_configs/GridRectangle.add.xml", "wb") as f:
         f.write(b_xml)
 
 
