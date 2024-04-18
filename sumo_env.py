@@ -1865,7 +1865,7 @@ class SUMOEnv(Env):
 				if self._rlLaneID[rl_agent] != self.traci.vehicle.getLaneID(rl_agent):
 					total_lane_change_rl+=1
 
-		self._average_LaneChange_number_rl+= total_lane_change_rl/len(self._rl_vehicleID)
+		self._average_LaneChange_number_rl+= total_lane_change_rl/len(self._rl_vehicleID) if self._rl_vehicleID else 0 
 		# print("Total npc: " + str(len(self._npc_vehicleID)) + "Total RL agent: " + str(len(self._rl_vehicleID)))
 		
 		# if len(self._rl_vehicleID)!=self.n:
