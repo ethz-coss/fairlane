@@ -17,7 +17,7 @@ HDV=[0,10,20,30,40,50,60,70,80,90,100]
 
 for cav in CAV:
     for fold in folder:
-        file_path = f"C:/Users/rodubey/Downloads/result/results/MSN/{fold}_{cav}_consolidated.csv"
+        file_path = f"results/MSN/{fold}_{cav}_consolidated.csv"
         header = [ 'Avg_WaitingTime_All (5 mins)','avg_speed_all','Avg_WaitingTime_CAV (5 mins)', 'Avg_WaitingTime_RL+NPC (5 mins)', 'avg_speed_CAV','avg_speed_RL+NPC','Throughput','total_lane_change_number_all (5 mins)','total_lane_change_number_RL (5 mins)','total_collision (5 mins)','CAV','HDV','NPC','Seed']
         data = []
         with open('dummy.csv', 'wt', newline ='') as file:    
@@ -25,7 +25,7 @@ for cav in CAV:
             # writer.writerow(i for i in header)
             for hdv in HDV:
                 if 100-(hdv+cav) >=0:
-                    filename = f"C:/Users/rodubey/Downloads/result/results/MSN/{fold}/{fold}_CAV{cav}_HDV{hdv}_NPC{100-(hdv+cav)}_test_stats.csv"
+                    filename = f"results/MSN/{fold}/{fold}_CAV{cav}_HDV{hdv}_NPC{100-(hdv+cav)}_test_stats.csv"
                     if os.path.isfile(filename):
                         if os.stat(filename).st_size > 0:             # print(filename)
                             df = pd.read_csv(filename)             
@@ -46,6 +46,8 @@ for cav in CAV:
                                 
                             #     writer.writerow(row_list)
                             averaged = df.groupby('Seed').mean().reset_index()
+                            if len(df.Seed.unique())<10:
+                                print(len(df.Seed.unique()), filename)
                             averaged['CAV'] = cav
                             averaged['HDV'] = hdv
                             averaged['NPC'] = 100-hdv
