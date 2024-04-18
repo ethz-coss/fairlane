@@ -553,8 +553,8 @@ class SUMOEnv(Env):
 		# 	self.n=86
 		# else:
 		# 	self.n = len(self._rl_vehicleID)
-		print(len(self.agents))
-		print(self.n)
+		# print(len(self.agents))
+		# print(self.n)
 		assert(len(self.agents)<=self.n)
 		return self.agents
 
@@ -1765,7 +1765,7 @@ class SUMOEnv(Env):
 		average_speed_All = (cav_count*avg_speed_CAV+rl_count*avg_speed_RL + npc_count*avg_speed_NPC)/(cav_count+rl_count+npc_count)
 
 		# print(avg_throughput)
-		headers = ['Avg_WaitingTime_All (5 mins)','avg_speed_all','Avg_WaitingTime_CAV (5 mins)','Avg_WaitingTime_RL+NPC (5 mins)','avg_speed_CAV','avg_speed_RL+NPC','Throughput','total_lane_change_number_all (5 mins)','total_lane_change_number_RL (5 mins)','total_collision (5 mins)','Episode_Step',"Seed"]
+		headers = ['Average Waiting Time (All)','Average Speed (All)','Average Waiting Time (CAV)','Average Waiting Time (HDV & NPC)','Average Speed (CAV)','Average Speed (HDV & NPC)','Throughput','Average Lane Change Number (All)','Average Lane Change Number (HDV)','Collision Number','Episode_Step',"Seed"]
 		values = [average_delay_All,average_speed_All,avg_delay_CAV,total_avg_delay,avg_speed_CAV,total_Avg_speed,avg_throughput,self._average_LaneChange_number_all,self._average_LaneChange_number_rl,self._collisionCount/300,self._episodeStep,self._sumo_seed]
 		
 		self._currentTimeLoss_cav=0;self._avg_speed_cav=0;self._currentTimeLoss_rl=0;self._avg_speed_rl=0;self._currentTimeLoss_npc=0;self._avg_speed_npc=0
