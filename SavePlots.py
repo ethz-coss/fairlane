@@ -3,15 +3,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-flow = '2400_16April_Model37'
+flow = 'Model37'
 keys_to_plot = ['Avg_WaitingTime_All (5 mins)','avg_speed_all','Avg_WaitingTime_CAV (5 mins)', 'Avg_WaitingTime_RL+NPC (5 mins)', 'avg_speed_CAV','avg_speed_RL+NPC','Throughput','total_lane_change_number_all (5 mins)']
 for key in keys_to_plot:
-    # fig, axes = plt.subplots(2,5,figsize=(30,10), dpi=300,sharey=True)
-    fig, axes = plt.subplots(2,5,figsize=(30,10), dpi=300)
+    fig, axes = plt.subplots(2,5,figsize=(30,10), dpi=300,sharey='row')
+    # fig, axes = plt.subplots(2,5,figsize=(30,10), dpi=300)
     # axes = axes.flatten()
 
-    # CAV=[0,10,20,30,40,50,60,70,80,90]
-    CAV = [30]
+    CAV=[0,10,20,30,40,50,60,70,80,90]
+    # CAV = [30,40,50]
     # CAV = [10,20,30]
     j = -1
     k = 0
@@ -20,12 +20,13 @@ for key in keys_to_plot:
         if j == 5:
             j = 0
             k = 1
-
+        file_path = "C:/Users/rodubey/Downloads/result/results/MSN"
+        # file_path = "D:/prioritylane/results/MSN"
         mapping = {
-                'Exclusive CAV': f'D:/prioritylane/results/MSN/Baseline1_{cav}_consolidated',
-                'Model': f'D:/prioritylane/results/MSN/Model_{cav}_consolidated', 
-                'SOTA': f'D:/prioritylane/results/MSN/SOTA_{cav}_consolidated',    
-                'No Managed Lane': f'D:/prioritylane/results/MSN/Baseline2_{cav}_consolidated',  
+                'Exclusive CAV': f'{file_path}/Baseline1_{cav}_consolidated',
+                'Model': f'{file_path}/Model_{cav}_consolidated', 
+                'SOTA': f'{file_path}/SOTA_{cav}_consolidated',    
+                'No Managed Lane': f'{file_path}/Baseline2_{cav}_consolidated',  
             }
         subtitle_to_plot = [f'CAV Penetration Rate = {cav}']
         data = []
@@ -33,11 +34,12 @@ for key in keys_to_plot:
             filename = f'{_filename}.csv'
             df = pd.read_csv(filename)
             df['baseline'] = label
-            df['seed'] = range(len(df))
+            # df['Seed'] = range(len(df))
             data.append(df)
         super_df = pd.concat(data).reset_index()
         # print(super_df.shape)
-        sns.lineplot(ax=axes[k,j],data=super_df, hue='baseline', x="HDV", estimator='median', y=key,style="baseline",markers=True).set(title=subtitle_to_plot[0])
+        # print(cav)
+        sns.lineplot(ax=axes[k,j],data=super_df, hue='baseline', x="HDV", estimator='mean', y=key,style="baseline",markers=True).set(title=subtitle_to_plot[0])
     # plt.show()
     plt.savefig(f'C:/D/SUMO/PriorityLane/ResultPlots/{flow}/{flow}_{key}.jpg')
     # plt.savefig('rohit.jpg')
