@@ -3,6 +3,7 @@ stat_train*.csv
 models/
 results/
 wandb/
+*.jpg
 
 # EULER
 slurm*.out
