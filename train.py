@@ -8,19 +8,13 @@ from torch.autograd import Variable
 from utils.buffer import ReplayBuffer
 from algorithms.maddpg import MADDPG
 from sumo_env import SUMOEnv
-# import wandb
+import wandb
 import os
 from tqdm import tqdm
 from utils.common import make_parallel_env
 
     
     
-# use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
-# wandb.init(
-#   project="prioritylane",
-#   tags=["MultiAgent", "RL"],
-#   mode=use_wandb
-# )
 
 reward_type = "Global"
 # reward_type = "Local"
@@ -57,19 +51,7 @@ def dynamic_agents(model,agents):
     model.agents = np.array(list(modelToRlDict.values()))
     return model
 
-def runner(config):
-    model_dir = Path('./models') / config.env_id / config.model_name
-    if not model_dir.exists():
-        curr_run = 'run1'
-    else:
-        exst_run_nums = [int(str(folder.name).split('run')[1]) for folder in
-                         model_dir.iterdir() if
-                         str(folder.name).startswith('run')]
-        if len(exst_run_nums) == 0:
-            curr_run = 'run1'
-        else:
-            curr_run = 'run%i' % (max(exst_run_nums) + 1)
-    run_dir = model_dir / curr_run
+def runner(config, run_dir, wandb_run):
     log_dir = run_dir / 'logs'
     os.makedirs(log_dir)
     # logger = SummaryWriter(str(log_dir))
@@ -89,22 +71,22 @@ def runner(config):
     # env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, GUI, testFlag,
     #                         config.episode_duration, num_agents=config.n_agents, action_step=config.action_step)
     
-    env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, GUI, testFlag,
+    env = make_parallel_env(SUMOEnv, config.n_rollout_threads, config.seed, GUI, testFlag, 
                             config.episode_duration, num_agents=config.n_agents, action_step=config.action_step,
                             cav_rate=CAV, hdv_rate=HDV, scenario_flag='model')
     # print(env.action_space)
     # print(env.observation_space)
     normalize_rewards = True
     # Log configs
-    # wandb.config.algorithm = 'MADDPG'
-    # wandb.config.lr = config.lr
-    # wandb.config.gamma = config.gamma
-    # wandb.config.batch_size = config.batch_size
-    # wandb.config.n_rl_agents = config.n_agents
-    # wandb.config.action_step = config.action_step
-    # wandb.config.normalize_rewards = normalize_rewards
+    wandb.config.algorithm = 'MADDPG'
+    wandb.config.lr = config.lr
+    wandb.config.gamma = config.gamma
+    wandb.config.batch_size = config.batch_size
+    wandb.config.n_rl_agents = config.n_agents
+    wandb.config.action_step = config.action_step
+    wandb.config.normalize_rewards = normalize_rewards
 
-    unwrapped_env = env.envs[0]
+    unwrapped_env = env.env_fns[0]()
     assert unwrapped_env.n == config.n_agents
 
     
@@ -118,14 +100,15 @@ def runner(config):
                                  [obsp.shape[0] for obsp in unwrapped_env.observation_space],
                                  [acsp.shape[0] if isinstance(acsp, Box) else acsp.n
                                   for acsp in unwrapped_env.action_space])
-    maddpg.backupAgents = maddpg.agents
-    maddpg = sample_agents(maddpg, config.n_agents)
+    # maddpg.backupAgents = maddpg.agents
+    # maddpg = sample_agents(maddpg, config.n_agents)
 
     t = 0
     scores = []    
     smoothed_total_reward = 0
     pid = os.getpid()
     train_counter = 0
+    env.seed(config.seed)
     for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
         total_reward = 0
         print("Episodes %i-%i of %i" % (ep_i + 1,
@@ -146,20 +129,21 @@ def runner(config):
         
         for et_i in range(episode_length):
             step += 1
-            number_of_agents = env.envs[0].n
+            number_of_agents = config.n_agents
             torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])),
                                 requires_grad=False)
                         for i in range(number_of_agents)]
             
             #assign models to RL agent
-            maddpg = dynamic_agents(maddpg, env.envs[0].agents)
+            # maddpg = dynamic_agents(maddpg, env.envs[0].agents)
             
             # get actions as torch Variables
             torch_agent_actions = maddpg.step(torch_obs, explore=True)
             # convert actions to numpy arrays
             agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
             # rearrange actions to be per environment
-            actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
+            actions = [np.array([ac[i] for ac in agent_actions]) for i in range(config.n_rollout_threads)]
+            # actions = np.array(actions)
             next_obs, rewards, dones, infos = env.step(actions)
 
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
@@ -181,10 +165,9 @@ def runner(config):
                 (t % config.steps_per_update) < config.n_rollout_threads):
                 if USE_CUDA:
                     device = 'gpu'
-                    maddpg.prep_training(device=device)
                 else:
                     device = 'cpu'                    
-                    maddpg.prep_training(device=device)
+                maddpg.prep_training(device=device)
                 for u_i in range(config.n_rollout_threads):
                     print("---------------Training----------------")
                     train_counter+=1
@@ -196,7 +179,7 @@ def runner(config):
                         val_losses.append(val_loss)
                         pol_losses.append(pol_loss)
                     maddpg.update_all_targets()
-                maddpg.prep_rollouts(device=device)
+                maddpg.prep_rollouts(device='cpu')
         ep_rews = replay_buffer.get_average_rewards(
             episode_length * config.n_rollout_threads)
         # for a_i, a_ep_rew in enumerate(ep_rews):
@@ -210,9 +193,9 @@ def runner(config):
         smoothed_total_reward = smoothed_total_reward * 0.9 + total_reward * 0.1
         scores.append(smoothed_total_reward)
         
-        # wandb.log({'# Episodes': ep_i, 
-        #         "Average Smooth Reward": smoothed_total_reward,
-        #         "Average Raw Reward": total_reward})
+        wandb.log({'# Episodes': ep_i, 
+                "Average Smooth Reward": smoothed_total_reward,
+                "Average Raw Reward": total_reward})
         
         
     
@@ -238,17 +221,17 @@ if __name__ == '__main__':
     parser.add_argument("--hdv", default=50, type=int)
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
-    parser.add_argument("--n_agents", default=200, type=int)
+    parser.add_argument("--n_agents", default=50, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--n_episodes", default=2000, type=int)
+    parser.add_argument("--n_episodes", default=5000, type=int)
     parser.add_argument("--episode_duration", default=400, type=int)
-    parser.add_argument("--action_step", default=2, type=int)
+    parser.add_argument("--action_step", default=3, type=int)
     parser.add_argument("--gamma", default=0.95, type=float)
     parser.add_argument("--steps_per_update", default=40, type=int)
     parser.add_argument("--batch_size",
                         default=1024, type=int,
                         help="Batch size for model training")
-    parser.add_argument("--n_exploration_eps", default=25000, type=int)
+    parser.add_argument("--n_exploration_eps", default=1000, type=int)
     parser.add_argument("--init_noise_scale", default=0.3, type=float)
     parser.add_argument("--final_noise_scale", default=0.0, type=float)
     parser.add_argument("--save_interval", default=30, type=int)
@@ -266,4 +249,25 @@ if __name__ == '__main__':
 
     config = parser.parse_args()
 
-    runner(config)
+    model_dir = Path('./models') / config.env_id / config.model_name
+    base_run_name = f'maddpg_run_{config.seed}'
+    if not model_dir.exists():
+        curr_run = f'{base_run_name}_1'
+    else:
+        exst_run_nums = [int(str(folder.name).rsplit('_', 1)[1]) for folder in
+                         model_dir.iterdir() if
+                         str(folder.name).startswith(base_run_name)]
+        if len(exst_run_nums) == 0:
+            curr_run =  f'{base_run_name}_1'
+        else:
+            curr_run =  f'{base_run_name}_{(max(exst_run_nums) + 1)}'
+    run_dir = model_dir / curr_run
+
+    use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
+    wandb_run = wandb.init(
+            project="prioritylane",
+            tags=["MultiAgent", "RL"],
+            mode=use_wandb, 
+            name=curr_run
+        )
+    runner(config, run_dir, wandb_run)
