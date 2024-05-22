@@ -175,7 +175,7 @@ class MADDPG(object):
                                {'vf_loss': vf_loss,
                                 'pol_loss': pol_loss},
                                self.niter)
-        return vf_loss.detach().numpy(), pol_loss.detach().numpy()
+        return vf_loss.cpu().detach().numpy(), pol_loss.cpu().detach().numpy()
 
     def update_all_targets(self):
         """

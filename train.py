@@ -21,7 +21,7 @@ reward_type = "Global"
 # reward_type = "Individual"
 GUI = False
 testFlag = False
-USE_CUDA = False #torch.cuda.is_available()
+USE_CUDA = True #torch.cuda.is_available()
 
 modelToRlDict = {}
 
@@ -263,7 +263,7 @@ if __name__ == '__main__':
             curr_run =  f'{base_run_name}_{(max(exst_run_nums) + 1)}'
     run_dir = model_dir / curr_run
 
-    use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
+    use_wandb = os.environ.get('WANDB_MODE', 'disabled') # can be online, offline, or disabled
     wandb_run = wandb.init(
             project="prioritylane",
             tags=["MultiAgent", "RL"],
