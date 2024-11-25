@@ -175,7 +175,7 @@ class MADDPG(object):
                                {'vf_loss': vf_loss,
                                 'pol_loss': pol_loss},
                                self.niter)
-        return vf_loss.detach().numpy(), pol_loss.detach().numpy()
+        return vf_loss.cpu().detach().numpy(), pol_loss.cpu().detach().numpy()
 
     def update_all_targets(self):
         """
@@ -266,6 +266,7 @@ class MADDPG(object):
             agent_init_params.append({'num_in_pol': num_in_pol,
                                       'num_out_pol': num_out_pol,
                                       'num_in_critic': num_in_critic})
+        # discrete_action = True # added line. It was not there. Rohit
         init_dict = {'gamma': gamma, 'tau': tau, 'lr': lr,
                      'hidden_dim': hidden_dim,
                      'alg_types': alg_types,
@@ -281,7 +282,7 @@ class MADDPG(object):
         """
         Instantiate instance of this class from file created by 'save' method
         """
-        save_dict = torch.load(filename)
+        save_dict = torch.load(filename, map_location=torch.device('cpu'))
         instance = cls(**save_dict['init_dict'])
         instance.init_dict = save_dict['init_dict']
         for a, params in zip(instance.agents, save_dict['agent_params']):

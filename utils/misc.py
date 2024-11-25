@@ -55,8 +55,8 @@ def onehot_from_logits(logits, eps=0.0):
     if eps == 0.0:
         return argmax_acs
     # get random actions in one-hot form
-    rand_acs = Variable(torch.eye(logits.shape[1])[[np.random.choice(
-        range(logits.shape[1]), size=logits.shape[0])]], requires_grad=False)
+    rand_acs = (torch.eye(logits.shape[1])[[np.random.choice(
+        range(logits.shape[1]), size=logits.shape[0])]]).detach()
     # chooses between best and random actions using epsilon greedy
     return torch.stack([argmax_acs[i] if r > eps else rand_acs[i] for i, r in
                         enumerate(torch.rand(logits.shape[0]))])
@@ -64,13 +64,13 @@ def onehot_from_logits(logits, eps=0.0):
 # modified for PyTorch from https://github.com/ericjang/gumbel-softmax/blob/master/Categorical%20VAE.ipynb
 def sample_gumbel(shape, eps=1e-20, tens_type=torch.FloatTensor):
     """Sample from Gumbel(0, 1)"""
-    U = Variable(tens_type(*shape).uniform_(), requires_grad=False)
+    U = tens_type(*shape).uniform_().detach()
     return -torch.log(-torch.log(U + eps) + eps)
 
 # modified for PyTorch from https://github.com/ericjang/gumbel-softmax/blob/master/Categorical%20VAE.ipynb
 def gumbel_softmax_sample(logits, temperature):
     """ Draw a sample from the Gumbel-Softmax distribution"""
-    y = logits + sample_gumbel(logits.shape, tens_type=type(logits.data))
+    y = logits + sample_gumbel(logits.shape, tens_type=type(logits.data)).to(logits.device)
     return F.softmax(y / temperature, dim=1)
 
 # modified for PyTorch from https://github.com/ericjang/gumbel-softmax/blob/master/Categorical%20VAE.ipynb

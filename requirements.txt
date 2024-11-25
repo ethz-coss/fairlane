@@ -1,9 +1,15 @@
-gym==0.21
 torch==2.1.2
 matplotlib
 wandb>=0.16
-traci==1.19
-libsumo==1.19
-sumolib==1.19
+eclipse-sumo==1.20
+traci==1.20
+libsumo==1.20
+sumolib==1.20
 tqdm
 seaborn
+gym==0.21
+
+
+# Install wheel==0.38 standalone and first
+# then run the setup using requirements.txt wheel==0.38.4
+
