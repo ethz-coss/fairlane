@@ -23,14 +23,14 @@ signal.signal(signal.SIGTERM, sigterm_handler)
 IS_SLURM = which('sbatch') is not None
 DEFAULT_SEED = 42
 
-NUM_SEEDS = 10
+NUM_SEEDS = 20
 seeds = range(DEFAULT_SEED, DEFAULT_SEED+NUM_SEEDS)
 
 def flush_commands(commands):
     if not IS_SLURM:
         pycalls = " &\n".join(commands)
         pycalls += "\n wait"
-        proc = Popen(f'{pycalls}', shell=True, preexec_fn=os.setsid)
+        proc = Popen(f'{pycalls}', shell=True) #, preexec_fn=os.setsid
         child_processes.append(proc)
         proc.communicate()
         return
@@ -45,25 +45,30 @@ def flush_commands(commands):
 
 
 if __name__=="__main__":
-    NCPU = 1
+    NCPU = 16
     calls = []
 
     ## OVERRIDES
+    # scenarios = ['baseline1', 'baseline2','model','sota', 'mappo']
     scenarios = ['baseline1', 'baseline2','model','sota']
-    # scenarios = ["model","sota","baseline1"]
-    # scenarios = ['sota']
-    cav_rates = np.arange(0,101,10)
-    hdv_rates = np.arange(0,101,10)
-
-   
+    # scenarios = ['baseline2',"baseline1"]
+    # scenarios = ['mappo']
+    cav_rates = np.arange(0,91,10)
+    hdv_rates = np.arange(10,91,10)
+    compliances = np.arange(0, 1.01, 0.1)
+    cav_rates = [10,20]
+    hdv_rates = [20,30,40]
     for scenario in scenarios:
-        for cav, hdv in itertools.product(cav_rates, hdv_rates):
+        for cav, hdv, compliance in itertools.product(cav_rates, hdv_rates, compliances):
             if (cav+hdv)<=100:
                 _, _, n_agents = convertToFlows(cav,hdv,scenario)   
                 # n_agents = 100         
                 # if scenario == 'baseline1' or scenario == 'baseline2':
                 #     n_agents = 1
-                calls.append(f"python test.py --run_id run37 --scenario {scenario} --cav {cav} --hdv {hdv} --n_agents {n_agents}")
+                if scenario=='mappo':
+                    calls.append(f"python run_mappo.py --run_id mappo_run_45_1 --waiting_time_memory 3600 --n_episodes 1 --option test --episode_duration 3600 --cav {cav} --hdv {hdv}")
+                else:
+                    calls.append(f"python test.py --run_id maddpg_run_45_2 --waiting_time_memory 3600 --scenario {scenario} --cav {cav} --hdv {hdv} --n_agents {n_agents} --compliance {compliance}")
                 # proc = Popen(f"python test.py --run_id run16 --scenario {scenario} --cav {cav} --hdv {hdv} --n_agents {n_agents}", shell=True)
                 # proc.wait()
             if len(calls)==NCPU:

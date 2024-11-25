@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from gym.vector import AsyncVectorEnv, SyncVectorEnv
 from gym.vector.async_vector_env import AsyncState, AlreadyPendingCallError
-from gym.vector.utils import concatenate
+from gym.vector.utils import concatenate, write_to_shared_memory
 import numpy as np
 import sys
 
@@ -12,9 +12,51 @@ if TYPE_CHECKING:
 from copy import deepcopy
 
 
-class MASyncVectorEnv(SyncVectorEnv):
+def _worker_shared_memory(index, env_fn, pipe, parent_pipe, shared_memory, error_queue):
+    assert shared_memory is not None
+    env = env_fn()
+    observation_space = env.observation_space
+    parent_pipe.close()
+    try:
+        while True:
+            command, data = pipe.recv()
+            if command == "reset":
+                observation = env.reset()
+                write_to_shared_memory(
+                    index, observation, shared_memory, observation_space
+                )
+                pipe.send((None, True))
+            elif command == "step":
+                observation, reward, done, info = env.step(data)
+                if all(done):
+                    observation = env.reset()
+                write_to_shared_memory(
+                    index, observation, shared_memory, observation_space
+                )
+                pipe.send(((None, reward, done, info), True))
+            elif command == "seed":
+                env.seed(data)
+                pipe.send((None, True))
+            elif command == "close":
+                pipe.send((None, True))
+                break
+            elif command == "_check_observation_space":
+                pipe.send((data == observation_space, True))
+            else:
+                raise RuntimeError(
+                    "Received unknown command `{0}`. Must "
+                    "be one of {`reset`, `step`, `seed`, `close`, "
+                    "`_check_observation_space`}.".format(command)
+                )
+    except (KeyboardInterrupt, Exception):
+        error_queue.put((index,) + sys.exc_info()[:2])
+        pipe.send((None, False))
+    finally:
+        env.close()
+
+class MAAsyncVectorEnv(AsyncVectorEnv):
     def __init__(self, env_fns, num_agents=1, observation_space=None, action_space=None, copy=True):
-        super().__init__(env_fns, observation_space=None, action_space=None, copy=True)
+        super().__init__(env_fns, observation_space=None, action_space=None, copy=True, worker=_worker_shared_memory)
         self._rewards = np.zeros((self.num_envs, num_agents,), dtype=float)
         self._dones = np.zeros((self.num_envs, num_agents,), dtype=np.bool_)
         # self._rewards = [None] * self.num_envs
@@ -24,20 +66,23 @@ class MASyncVectorEnv(SyncVectorEnv):
         transpose_idx = (1, 0, 2)
         return np.transpose(obs, transpose_idx)
 
-    # def step_async(self, actions: np.ndarray):
-    #     self._assert_is_running()
-    #     if self._state != AsyncState.DEFAULT:
-    #         raise AlreadyPendingCallError(
-    #             f"Calling `step_async` while waiting for a pending call to `{self._state.value}` to complete.",
-    #             self._state.value,
-    #         )
+    def step_wait(self):  # override
+        obs, rews, dones, infos = super().step_wait()
+        transpose_idx = (1, 0, 2)
+        return np.transpose(obs, transpose_idx), rews, dones, infos
 
-    #     for pipe, action in zip(self.parent_pipes, actions):
-    #         pipe.send(("step", action))
-    #     self._state = AsyncState.WAITING_STEP
+class MASyncVectorEnv(SyncVectorEnv):
+    def __init__(self, env_fns, num_agents=1, observation_space=None, action_space=None, copy=True):
+        super().__init__(env_fns, observation_space=None, action_space=None, copy=True)
+        self._rewards = np.zeros((self.num_envs, num_agents,), dtype=float)
+        self._dones = np.zeros((self.num_envs, num_agents,), dtype=np.bool_)
+
+    def reset_wait(self, *args, **kwargs):  # override
+        obs = super().reset_wait(*args, **kwargs)
+        transpose_idx = (1, 0, 2)
+        return np.transpose(obs, transpose_idx)
 
     def step_wait(self):  # override
-        # obs, rews, dones, infos = super().step_wait()
         observations, infos = [], []
         for i, (env, action) in enumerate(zip(self.envs, self._actions)):
             observation, self._rewards[i], self._dones[i], info = env.step(action)
@@ -67,20 +112,20 @@ def make_parallel_env(sumoenv: SUMOEnv, n_rollout_threads, seed, mode, testFlag,
     def get_env_fn(rank):
         def init_env():
             env = sumoenv(mode=mode, testFlag=testFlag, num_agents=num_agents, action_step=action_step,
-                          episode_duration=episode_duration, **kwargs)
+                          episode_duration=episode_duration, default_seed=seed, **kwargs)
             env.seed(seed + rank * 1000)
-            np.random.seed(seed + rank * 1000)
+            # np.random.seed(seed + rank * 1000)
             return env
         return init_env
     if n_rollout_threads == 1:
         return MASyncVectorEnv([get_env_fn(0)], num_agents=num_agents)
     else:
-        return MASyncVectorEnv([get_env_fn(i) for i in range(n_rollout_threads)], num_agents=num_agents)
+        return MAAsyncVectorEnv([get_env_fn(i) for i in range(n_rollout_threads)], num_agents=num_agents)
 
 
-def convertToFlows(cpn, hpn,scenario):
-    # vph = 13416 #2400 seems to be in out favor, followed by 2100
-    vph = 13416
+VPH = 13416
+def convertToFlows(cpn, hpn, scenario):
+    vph = VPH
     cav_count = int((vph/100)*cpn)
     hdv_count = int((vph/100)*hpn)
     npc_count = int(vph - (cav_count+hdv_count))

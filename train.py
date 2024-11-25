@@ -12,8 +12,6 @@ import wandb
 import os
 from tqdm import tqdm
 from utils.common import make_parallel_env
-
-    
     
 
 reward_type = "Global"
@@ -21,7 +19,7 @@ reward_type = "Global"
 # reward_type = "Individual"
 GUI = False
 testFlag = False
-USE_CUDA = True #torch.cuda.is_available()
+USE_CUDA = True and torch.cuda.is_available()
 
 modelToRlDict = {}
 
@@ -51,6 +49,9 @@ def dynamic_agents(model,agents):
     model.agents = np.array(list(modelToRlDict.values()))
     return model
 
+def logit2ohe(x):
+    return 1*(x==x.max(axis=1, keepdims=True))
+    
 def runner(config, run_dir, wandb_run):
     log_dir = run_dir / 'logs'
     os.makedirs(log_dir)
@@ -142,7 +143,7 @@ def runner(config, run_dir, wandb_run):
             # convert actions to numpy arrays
             agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
             # rearrange actions to be per environment
-            actions = [np.array([ac[i] for ac in agent_actions]) for i in range(config.n_rollout_threads)]
+            actions = [logit2ohe(np.array([ac[i] for ac in agent_actions])) for i in range(config.n_rollout_threads)]
             # actions = np.array(actions)
             next_obs, rewards, dones, infos = env.step(actions)
 
@@ -163,22 +164,20 @@ def runner(config, run_dir, wandb_run):
             # print(len(replay_buffer))
             if (len(replay_buffer) >= config.batch_size and
                 (t % config.steps_per_update) < config.n_rollout_threads):
+                print(f"---------------Training----------------:{et_i}")
                 if USE_CUDA:
                     device = 'gpu'
                 else:
                     device = 'cpu'                    
                 maddpg.prep_training(device=device)
-                for u_i in range(config.n_rollout_threads):
-                    print("---------------Training----------------")
-                    train_counter+=1
-                    # print(train_counter)
-                    for a_i in range(maddpg.nagents):
-                        sample = replay_buffer.sample(config.batch_size,
-                                                    to_gpu=USE_CUDA, norm_rews=normalize_rewards)
-                        val_loss, pol_loss = maddpg.update(sample, a_i)
-                        val_losses.append(val_loss)
-                        pol_losses.append(pol_loss)
-                    maddpg.update_all_targets()
+                train_counter+=1
+                for a_i in range(maddpg.nagents):
+                    sample = replay_buffer.sample(config.batch_size,
+                                                to_gpu=USE_CUDA, norm_rews=normalize_rewards)
+                    val_loss, pol_loss = maddpg.update(sample, a_i)
+                    val_losses.append(val_loss)
+                    pol_losses.append(pol_loss)
+                maddpg.update_all_targets()
                 maddpg.prep_rollouts(device='cpu')
         ep_rews = replay_buffer.get_average_rewards(
             episode_length * config.n_rollout_threads)
@@ -222,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--n_agents", default=50, type=int)
-    parser.add_argument("--buffer_length", default=int(1e6), type=int)
+    parser.add_argument("--buffer_length", default=int(1e5), type=int)
     parser.add_argument("--n_episodes", default=5000, type=int)
     parser.add_argument("--episode_duration", default=400, type=int)
     parser.add_argument("--action_step", default=3, type=int)
@@ -232,7 +231,7 @@ if __name__ == '__main__':
                         default=1024, type=int,
                         help="Batch size for model training")
     parser.add_argument("--n_exploration_eps", default=1000, type=int)
-    parser.add_argument("--init_noise_scale", default=0.3, type=float)
+    parser.add_argument("--init_noise_scale", default=1.0, type=float)
     parser.add_argument("--final_noise_scale", default=0.0, type=float)
     parser.add_argument("--save_interval", default=30, type=int)
     parser.add_argument("--hidden_dim", default=64, type=int)
@@ -244,8 +243,7 @@ if __name__ == '__main__':
     parser.add_argument("--adversary_alg",
                         default="MADDPG", type=str,
                         choices=['MADDPG', 'DDPG'])
-    parser.add_argument("--discrete_action",
-                        action='store_true')
+    parser.add_argument("--discrete_action", default=True)
 
     config = parser.parse_args()
 
@@ -263,11 +261,15 @@ if __name__ == '__main__':
             curr_run =  f'{base_run_name}_{(max(exst_run_nums) + 1)}'
     run_dir = model_dir / curr_run
 
-    use_wandb = os.environ.get('WANDB_MODE', 'disabled') # can be online, offline, or disabled
+    use_wandb = os.environ.get('WANDB_MODE', 'online') # can be online, offline, or disabled
     wandb_run = wandb.init(
             project="prioritylane",
             tags=["MultiAgent", "RL"],
             mode=use_wandb, 
             name=curr_run
         )
+    wandb.define_metric("*", step_metric="# Episodes")
+
+
     runner(config, run_dir, wandb_run)
+

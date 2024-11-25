@@ -4,6 +4,8 @@ models/
 results/
 wandb/
 *.jpg
+*.pdf
+*.png
 
 # EULER
 slurm*.out

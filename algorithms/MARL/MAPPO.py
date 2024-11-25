@@ -103,7 +103,7 @@ class MAPPO:
         states = []
         actions = []
         rewards = []
-        done = True
+        # done = True
         # average_speed = 0
 
         self.n_agents = len(self.env.controlled_vehicles)

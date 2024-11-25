@@ -2,20 +2,20 @@ from gym import Env
 from gym.utils import seeding
 from gym import spaces
 import numpy as np
-import math
 from sumolib import checkBinary
 import os, sys
 import traci
 from scripts import utils
 import xml.etree.ElementTree as ET
-import math
 from itertools import combinations
 import sumolib
 from sumolib import net
 from lxml import etree as ET
 from gym.vector.utils import concatenate
-from utils.common import convertToFlows
+from utils.common import convertToFlows, VPH
 from gym.vector.utils.spaces import batch_space
+import copy
+rho_proximity = 15
 
 def generate_routefile(base_routefile, out_route_file, cav_rate, hdv_rate, n_agents, baseline):
 	cav_period, npc_period, hdv_period = convertToFlows(cav_rate,hdv_rate,baseline)
@@ -163,8 +163,8 @@ def generate_routefile(base_routefile, out_route_file, cav_rate, hdv_rate, n_age
 	with open(out_route_file, "wb") as f:
 		f.write(ET.tostring(data, pretty_print=True))
 
-def generate_routefile_Barcelona(base_routefile, out_route_file, cav_rate, hdv_rate, n_agents, baseline):
-	cav_period, npc_period, hdv_period = convertToFlows(cav_rate,hdv_rate,baseline)
+def generate_routefile_Barcelona(base_routefile, out_route_file, cav_rate, hdv_rate, n_agents, baseline, compliance=1):
+	# cav_period, npc_period, hdv_period = convertToFlows(cav_rate,hdv_rate,baseline)
 	# print(f'WARNING: n_agents not the same as output of convertToFlows: {n_agents} vs {_n_agents}',
 	#       'Following convertToFlows')
 	# print(n_agents)
@@ -194,118 +194,54 @@ def generate_routefile_Barcelona(base_routefile, out_route_file, cav_rate, hdv_r
 				vtype.attrib['vClass'] = 'custom2'
 		data.append(vtype)
 
-	# for flow in flows:
-	# 	if flow.attrib['type']=='passenger-default':
-	# 		flow.attrib['period'] = f'exp({npc_period:.4f})'
-	# 		if npc_period==0:
-	# 			continue
-	# 	if flow.attrib['type']=='cav-priority':
-	# 		flow.attrib['period'] = f'exp({cav_period:.4f})'
-	# 		if cav_period==0:
-	# 			continue
-	# 	if flow.attrib['type']=='rl-default':
-	# 		flow.attrib['period'] = f'exp({hdv_period:.4f})'
-	# 		if hdv_period==0:
-	# 			continue
-		# if 'RL' in flow.attrib['id'] and hdv_period==0:
-		# 	continue
-		# if flow.attrib['id']=='RL_-15_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-15_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-15_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-3_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-3_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-3_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-23_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-23_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-23_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-5_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-5_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-		# if flow.attrib['id']=='RL_-5_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(hdv_period/3)}'
-
-		# if 'npc' in flow.attrib['id'] and npc_period==0:
-		# 	continue
-
-		# if flow.attrib['id']=='npc_-15_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-15_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-15_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-3_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-3_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-3_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-23_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-23_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-23_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-5_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-5_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-		# if flow.attrib['id']=='npc_-5_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(npc_period/3)}'
-
-
-		# if 'cav' in flow.attrib['id'] and cav_period==0:
-		# 	continue
-		# if flow.attrib['id']=='cav_-15_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-		# if flow.attrib['id']=='cav_-15_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-		# if flow.attrib['id']=='cav_-3_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-		# if flow.attrib['id']=='cav_-3_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-		# if flow.attrib['id']=='cav_-23_5':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-		# if flow.attrib['id']=='cav_-23_3':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-		# if flow.attrib['id']=='cav_-5_11':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-		# if flow.attrib['id']=='cav_-5_15':
-		# 	flow.attrib['vehsPerHour'] = f'{int(cav_period/2)}'
-
-	n_agent_counter = 0
-	cav_agent_counter = 0
-	npc_agent_counter = 0
+	id_vehicle_list = {}
 	for i, vehicle in enumerate(vehicles):
-		# if i==_n_agents:
-		# 	break
-		# data.append(vehicle)
+		id = vehicle.attrib['id'].split('_')[-1]
+		veh_type = vehicle.attrib['type']
+		id_vehicle_list.setdefault(id, {})[veh_type] = vehicle
 		
-		if vehicle.attrib['type']=='rl-default' or vehicle.attrib['type']=='rl-priority':
-			if n_agent_counter < hdv_period:
-				data.append(vehicle)
-				n_agent_counter+=1
-		if vehicle.attrib['type']=='cav-priority':
-			if cav_agent_counter < cav_period:
-				data.append(vehicle)
-				cav_agent_counter+=1
-		if vehicle.attrib['type']=='passenger-default':
-			if npc_agent_counter < npc_period:
-				data.append(vehicle)
-				npc_agent_counter+=1
-	print("Inside Route Generate")
-	print(out_route_file)
+	
+	ids_to_delete = []
+	for id, vehs in id_vehicle_list.items():
+		if len(vehs)!= 3:
+			ids_to_delete.append(id)
+	for id in ids_to_delete:
+		del id_vehicle_list[id]
+	
+	num_vehicles = len(id_vehicle_list)
+
+	scale_factor = num_vehicles/VPH
+
+	cav_period = int((num_vehicles/100)*cav_rate)
+	hdv_period = int((num_vehicles/100)*hdv_rate)
+	npc_period = num_vehicles - (cav_period + hdv_period)
+	noncomply = 0
+
+	noncomply = int(npc_period*(1-compliance))
+	npc_period = npc_period-noncomply
+
+	sampling = {'rl-default': hdv_period,
+				'cav-priority': cav_period,
+				'passenger-default': npc_period,
+				'noncomply': noncomply}
+
+	rates = np.array(list(sampling.values()))
+	probabilities = rates/np.sum(rates)
+	# veh_type_choices = np.random.choice(list(sampling.keys()), size=num_vehicles, replace=True, p=probabilities)
+	veh_type_choices = np.array(sum([[k]*v for k, v in sampling.items()], start=[]))
+	np.random.shuffle(veh_type_choices)
+	for i, (id, vehs) in enumerate(id_vehicle_list.items()):
+		veh_type = veh_type_choices[i]
+		if veh_type=="noncomply":
+			vehicle = vehs['passenger-default']
+			vehicle.attrib['type'] = 'noncomply'
+		else:
+			vehicle = vehs[veh_type_choices[i]]
+		data.append(vehicle) # choose type of vehicle randomly. indexes correspond to "same" vehicle but as 1 of 3 types
+
 	with open(out_route_file, "wb") as f:
 		f.write(ET.tostring(data, pretty_print=True))
+	return scale_factor
 
 # def generate_routefile(base_routefile, out_route_file, cav_rate, hdv_rate, n_agents, baseline):
 # 	cav_period, npc_period, hdv_period = convertToFlows(cav_rate,hdv_rate,baseline)
@@ -485,8 +421,11 @@ class SUMOEnv(Env):
                  observation_callback=None, info_callback=None,
                  done_callback=None, shared_viewer=True,mode='gui',testStatAccumulation=10,
 				 testFlag='False',testModel="Default",simulation_end=36000, num_agents=50, action_step=30,
-				 episode_duration=None, cav_rate=10, hdv_rate=50, scenario_flag='model'):
+				 episode_duration=None, cav_rate=10, hdv_rate=50, scenario_flag='model',
+				 default_seed=42, waiting_time_memory=3, compliance=1):
 		self.pid = os.getpid()
+		self.seed(default_seed)
+		self.waiting_time_memory = waiting_time_memory
 		self.sumoCMD = []
 		self.reset_counter = 0
 		self._simulation_end = simulation_end
@@ -496,6 +435,7 @@ class SUMOEnv(Env):
 		self.scenario_flag = scenario_flag
 		self._testStatAccumulation = testStatAccumulation
 		self.agents = []
+		self.scaleFactor = 1
 		if testFlag == False:
 			# self._networkFileName = "sumo_configs/LargeTestNetwork.net.xml"
 			# self._routeFileName = "sumo_configs/LargeTestNetwork.rou.xml"   
@@ -521,8 +461,9 @@ class SUMOEnv(Env):
 			elif testModel=="Barcelona":
 				self._networkFileName = "sumo_configs/Test/Barcelona/Barcelona.net.xml"
 				self._baseRouteFileName = "sumo_configs/Test/Barcelona/Barcelona_scaled.rou.xml"
-				self._routeFileName = f"sumo_configs/Test/Barcelona/rou_{cav_rate}_{hdv_rate}_{scenario_flag}.rou.xml"
-				generate_routefile_Barcelona(self._baseRouteFileName, self._routeFileName, cav_rate, hdv_rate, num_agents, scenario_flag)
+				self._routeFileName = f"sumo_configs/Test/Barcelona/routes/rou_{cav_rate}_{hdv_rate}_{scenario_flag}_{default_seed}_{compliance}.rou.xml"
+				scalefactor = generate_routefile_Barcelona(self._baseRouteFileName, self._routeFileName, cav_rate, hdv_rate, num_agents, scenario_flag, compliance=compliance)
+				self.scaleFactor = 1/scalefactor
 				self._warmup_steps = 300
 				self.sumoConfig = "sumo_configs/Test/Barcelona/Barcelona.sumocfg"
 
@@ -545,11 +486,9 @@ class SUMOEnv(Env):
 		self._rl_counter = 0
 		self._cavFlowCounter = 0
 		self._collisionCount = 0
+		self._emergencyBreaking = 0
 		self._collisionVehicleID = []
 		self._agentModelDict = {}
-		# self._seed(40)
-		# np.random.seed(42)
-		self._sumo_seed = 42
 		self._reward_type = "Global" 
 		# self._reward_type = "Local" 
 		# self._reward_type = "Individual"
@@ -630,6 +569,7 @@ class SUMOEnv(Env):
 		self._avg_speed_npc = 0
 		self._avg_speed_cav = 0		
 		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
+		self._departDelay_rl = 0;self._departDelay_npc = 0;self._departDelay_cav = 0
 		self._average_edge_occupancy = 0
 		self._average_priorityLane_occupancy = 0
 		self._average_throughput = 0
@@ -798,55 +738,62 @@ class SUMOEnv(Env):
 					localRLVehicleCount+=1
 				elif priority_type!="cav-priority":
 					lane_id = str(self.traci.vehicle.getLaneIndex(cav))
-					if lane_id == '1':
+					if lane_id == '1': # CAV lane is always 0
 						npc_lane_position = self.traci.vehicle.getLanePosition(cav)
 						diff = agent_lane_pos - npc_lane_position
-						if abs(diff)<=15:
+						if abs(diff)<=rho_proximity:
 							npcCount+=1
 						diff = npc_lane_position - agent_lane_pos
 						if npc_lane_position>=agent_lane_pos:
-							if abs(diff)<=15:
+							if abs(diff)<=rho_proximity:
 								npcCount+=1
 
 		
 			#find next edge in the route for the RL agent
 
 			
-			#traffic light phase related observations
-			if self._testModel=="Barcelona":
-				phaseState = 0
-				remainingDuration = 0
+			# #traffic light phase related observations
+			# if self._testModel=="Barcelona":
+			# 	phaseState = 0
+			# 	remainingDuration = 0
+
+
 			remainingDuration = 1
 			if priorityLane_id.find(":")!=-1 or lane_id.find(":")!=-1:
 				phaseState = 0
-			else:      
-				lanesList = self.traci.trafficlight.getControlledLanes(nextNodeID)
-				lanesListLink = self.traci.trafficlight.getControlledLinks(nextNodeID)
-				lanesListLink = list(filter(None, lanesListLink))
-				index = -1
-				indexOfConcern = 999
-				for element in lanesListLink:
-					index+=1
-					currentLane = element[0][0]
-					NextLane = element[0][1]
-					if currentLane == lane_id:
-						if NextLane == nextLane:
-							indexOfConcern = index
+			else: 
+				if priorityLane_id in self.lane2tls:
+					tls_id = self.lane2tls[priorityLane_id]
+					# lanesList = self.traci.trafficlight.getControlledLanes(nextNodeID)
+					lanesListLink = self.traci.trafficlight.getControlledLinks(tls_id)
+					lanesListLink = list(filter(None, lanesListLink))
+					index = -1
+					indexOfConcern = 999
+					for element in lanesListLink:
+						index+=1
+						currentLane = element[0][0]
+						NextLane = element[0][1]
+						if currentLane == lane_id:
+							if NextLane == nextLane:
+								indexOfConcern = index
 							
 
-				trafficState = self.traci.trafficlight.getRedYellowGreenState(nextNodeID)
-				phaseDuration = self.traci.trafficlight.getPhaseDuration(nextNodeID)
-				remainingPhaseDuration = self.traci.trafficlight.getNextSwitch(nextNodeID) - self.traci.simulation.getTime()
-				remainingDuration = remainingPhaseDuration/phaseDuration			
-				trafficStateList = list(trafficState)
-				# positionOf = lanesList.index(priorityLane_id)
-				if indexOfConcern!=999:
-					phase = trafficStateList[indexOfConcern]
+					trafficState = self.traci.trafficlight.getRedYellowGreenState(tls_id)
+					phaseDuration = self.traci.trafficlight.getPhaseDuration(tls_id)
+					remainingPhaseDuration = self.traci.trafficlight.getNextSwitch(tls_id) - self.traci.simulation.getTime()
+					remainingDuration = remainingPhaseDuration/phaseDuration			
+					trafficStateList = list(trafficState)
+					# positionOf = lanesList.index(priorityLane_id)
+					if indexOfConcern!=999:
+						phase = trafficStateList[indexOfConcern]
+					else:
+						phase = "G"
+					phaseState = 0
+					if phase.find("G")!=-1 or phase.find("g")!=-1:
+						phaseState = 1
 				else:
-					phase = "G"
-				phaseState = 0
-				if phase.find("G")!=-1 or phase.find("g")!=-1:
-					phaseState = 1
+					phaseState = 0
+
 			self._trafficPhaseRLagent[agent_id] = phaseState
 			trafficState = self.traci.vehicle.getNextTLS(agent_id)
 			isStopped = 0
@@ -932,6 +879,7 @@ class SUMOEnv(Env):
 		self._avg_speed_npc = 0
 		self._avg_speed_cav = 0
 		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0
+		self._departDelay_rl = 0;self._departDelay_npc = 0;self._departDelay_cav = 0
 		self._average_edge_occupancy = 0
 		self._average_priorityLane_occupancy = 0
 		self._average_throughput = 0
@@ -945,6 +893,7 @@ class SUMOEnv(Env):
 		self._rl_counter = 0
 		self._cavFlowCounter=0
 		self._collisionCount = 0
+		self._emergencyBreaking = 0
 
 		self.all_vehicles = []
 		self.all_veh_speeds = {}
@@ -1107,7 +1056,7 @@ class SUMOEnv(Env):
 		# print("Collision_Counter :" + str(self._collisionCount))
 		self._sumo_step = 0
 		obs_n = []
-		seed = self._sumo_seed + self.reset_counter*100
+		seed = self._sumo_seed #+ self.reset_counter*100
 		self.traci.load(self.sumoCMD + ["--seed", str(seed)])
 		self.resetAllVariables()
 		self._laneList = self.traci.lane.getIDList()
@@ -1369,11 +1318,11 @@ class SUMOEnv(Env):
 					npc_lane_position = self.traci.vehicle.getLanePosition(veh)
 					agent_lane_pos = self.traci.vehicle.getLanePosition(rl_agent)
 					diff = agent_lane_pos - npc_lane_position
-					if abs(diff)<=15:
+					if abs(diff)<=rho_proximity:
 						npcCount+=1
 					diff = npc_lane_position - agent_lane_pos
 					if npc_lane_position>=agent_lane_pos:
-						if abs(diff)<=15:
+						if abs(diff)<=rho_proximity:
 							npcCount+=1
 			if npcCount>0:
 				reward = -0.5
@@ -1411,6 +1360,7 @@ class SUMOEnv(Env):
 		
 	def seed(self, seed=None):
 		self.np_random, seed = seeding.np_random(seed)
+		np.random.seed(seed)
 		self._sumo_seed = seed
 		return [seed]
 
@@ -1714,7 +1664,7 @@ class SUMOEnv(Env):
 					self._numberOfCAVWithinClearingDistanceAfter[rl_agent] = 0
 
 			#CAV related measures
-			avg_speed_cav = 0;currentWaitingTime_cav=0
+			avg_speed_cav = 0;currentWaitingTime_cav=0;departDelay_cav=0;departDelay_rl=0;departDelay_npc=0
 			cav_counter = 0
 			for cav_agent in self._cav_vehicleID:
 				cav_edge = self.traci.vehicle.getRoadID(cav_agent)
@@ -1724,16 +1674,20 @@ class SUMOEnv(Env):
 				# print(self.traci.vehicle.getAccumulatedWaitingTime(cav_agent))
 				# assert(self.traci.vehicle.getAccumulatedWaitingTime(cav_agent)<3)
 				currentWaitingTime_cav += self.traci.vehicle.getAccumulatedWaitingTime(cav_agent)
+				departDelay_cav += self.traci.vehicle.getDepartDelay(cav_agent)
 			if cav_counter > 0:
 				self._avg_speed_cav += avg_speed_cav/cav_counter
 				# print(currentWaitingTime_cav/cav_counter)
 				self._currentWaitingTime_cav += currentWaitingTime_cav/cav_counter
-				if self._currentWaitingTime_cav>=300:
+				self._departDelay_cav += departDelay_cav/cav_counter
+
+				if self._currentWaitingTime_cav>=360000:
 					stophere = 0
-				assert(self._currentWaitingTime_cav<=300)	
+				assert(self._currentWaitingTime_cav<=360000)	
 			else:
 				self._avg_speed_cav += 0
 				self._currentWaitingTime_cav += 0
+				self._departDelay_cav += 0
 			self._cavFlowCounter +=cav_counter
 			# print(self._currentWaitingTime_cav)
 			# print(cav_counter)
@@ -1751,13 +1705,16 @@ class SUMOEnv(Env):
 				rl_counter+=1
 				avg_speed_rl+=self.all_veh_speeds[rl_agent]
 				currentWaitingTime_rl += self.traci.vehicle.getAccumulatedWaitingTime(rl_agent)
+				departDelay_rl += self.traci.vehicle.getDepartDelay(rl_agent)
 
 			if rl_counter > 0:
 				self._avg_speed_rl += avg_speed_rl/rl_counter
 				self._currentWaitingTime_rl += currentWaitingTime_rl/rl_counter
+				self._departDelay_rl += departDelay_rl/rl_counter
 			else:
 				self._avg_speed_rl += 0
 				self._currentWaitingTime_rl += 0
+				self._departDelay_rl += 0
 
 		
 		
@@ -1769,22 +1726,26 @@ class SUMOEnv(Env):
 				npc_counter+=1
 				avg_speed_npc+=self.all_veh_speeds[npc_agent]
 				currentWaitingTime_npc += self.traci.vehicle.getAccumulatedWaitingTime(npc_agent)
+				departDelay_npc += self.traci.vehicle.getDepartDelay(npc_agent)
 
 			if npc_counter > 0:
 				self._avg_speed_npc += avg_speed_npc/npc_counter
 				self._currentWaitingTime_npc += currentWaitingTime_npc/npc_counter
+				self._departDelay_npc += departDelay_npc/npc_counter
 			else:
 				self._avg_speed_npc += 0
 				self._currentWaitingTime_npc += 0
+				self._departDelay_npc += 0
 		
 		# print(self._currentWaitingTime_cav)
      
 	def collectObservationPerStep(self):
 		elapsed_simulation_time = self.traci.simulation.getTime()
 		allVehicleList = self.all_vehicles
-		self._collisionCount+= self.traci.simulation.getEmergencyStoppingVehiclesNumber()
+		self._emergencyBreaking+= self.traci.simulation.getEmergencyStoppingVehiclesNumber()
+		self._collisionCount+= self.traci.simulation.getCollidingVehiclesNumber()
 		# self._collisionVehicleID.append(self.traci.simulation.getEmergencyStoppingVehiclesIDList())
-		self._collisionCount+= self.traci.simulation.getEndingTeleportNumber()
+		# self._collisionCount+= self.traci.simulation.getEndingTeleportNumber()
 
 		# self._collisionVehicleID.append(self.traci.simulation.getEmergencyStoppingVehiclesIDList())
 		
@@ -1864,29 +1825,36 @@ class SUMOEnv(Env):
 		# if  self._episodeStep!=249: # to avoid writing the last line of CSV. 
 		avg_delay_RL=0;avg_speed_RL=0;avg_delay_NPC=0;avg_speed_NPC=0;avg_occupancy_priorityLane=0;avg_PMx_emission=0;total_lane_change_number=0
 		avg_delay_CAV=0;avg_speed_CAV=0;avg_delay_Heuristic=0;avg_speed_Heuristic=0;avg_delay_ALLButCAV=0;avg_speed_AllButCAV=0
+		avg_departDelay_CAV = 0;avg_departDelay_NPC = 0;avg_departDelay_RL = 0
 		
 		# avg_delay_CAV = self._currentTimeLoss_cav/self.action_steps
-		avg_delay_CAV = self._currentWaitingTime_cav
+		avg_delay_CAV = self._currentWaitingTime_cav/100
 		# print("CAV_Delay--",avg_delay_CAV,"CAV Counter--",self._cavFlowCounter)
 		allVehicleList = self.all_vehicles
 		# print(len(allVehicleList))
 		avg_speed_CAV = self._avg_speed_cav/100
 
-		# avg_delay_RL = self._currentTimeLoss_rl/self.action_steps
-		avg_delay_RL = self._currentWaitingTime_rl
-		avg_speed_RL = self._avg_speed_rl/100
+		avg_departDelay_CAV = self._departDelay_cav/100
 
-		avg_delay_NPC = self._currentWaitingTime_npc
+		# avg_delay_RL = self._currentTimeLoss_rl/self.action_steps
+		avg_delay_RL = self._currentWaitingTime_rl/100
+		avg_speed_RL = self._avg_speed_rl/100
+		avg_departDelay_RL = self._departDelay_rl/100
+
+
+		avg_delay_NPC = self._currentWaitingTime_npc/100
+		avg_departDelay_NPC = self._departDelay_npc/100
+
 		avg_speed_NPC = self._avg_speed_npc/100
-		if avg_delay_NPC!=0 and avg_delay_RL!=0:
-			total_avg_delay = (avg_delay_RL + avg_delay_NPC)/2
-			total_Avg_speed = (avg_speed_RL + avg_speed_NPC)/2
-		if avg_delay_NPC==0 and avg_delay_RL!=0:
-			total_avg_delay = avg_delay_RL
-			total_Avg_speed = avg_speed_RL
-		if avg_delay_NPC!=0 and avg_delay_RL==0:
-			total_avg_delay = avg_delay_NPC
-			total_Avg_speed = avg_speed_NPC
+		# if avg_delay_NPC!=0 and avg_delay_RL!=0:
+		# 	total_avg_delay = (avg_delay_RL + avg_delay_NPC)/2
+		# 	total_Avg_speed = (avg_speed_RL + avg_speed_NPC)/2
+		# if avg_delay_NPC==0 and avg_delay_RL!=0:
+		# 	total_avg_delay = avg_delay_RL
+		# 	total_Avg_speed = avg_speed_RL
+		# if avg_delay_NPC!=0 and avg_delay_RL==0:
+		# 	total_avg_delay = avg_delay_NPC
+		# 	total_Avg_speed = avg_speed_NPC
 		
 
 		allVehicleList = self.all_vehicles
@@ -1898,9 +1866,11 @@ class SUMOEnv(Env):
 		if (rl_count+npc_count) > 0:
 			total_avg_delay = (rl_count*avg_delay_RL + npc_count*avg_delay_NPC)/(rl_count+npc_count)
 			total_Avg_speed = (rl_count*avg_speed_RL + npc_count*avg_speed_NPC)/(rl_count+npc_count)
+			total_avg_departDelay = (rl_count*avg_departDelay_RL + npc_count*avg_departDelay_NPC)/(rl_count+npc_count)
 		else:
 			total_avg_delay = (rl_count*avg_delay_RL + npc_count*avg_delay_NPC)
 			total_Avg_speed = (rl_count*avg_speed_RL + npc_count*avg_speed_NPC)
+			total_avg_departDelay = (rl_count*avg_departDelay_RL + npc_count*avg_departDelay_NPC)
 
 
 		# print(self._collisionCounter)
@@ -1923,25 +1893,32 @@ class SUMOEnv(Env):
 			self._average_throughput = throughput/LD_counter
 
 		avg_throughput = (self._average_throughput*3600)/(300) #vehicle/hour
-	
-		average_delay_All = (cav_count*avg_delay_CAV+rl_count*avg_delay_RL + npc_count*avg_delay_NPC)/(cav_count+rl_count+npc_count)
-		average_speed_All = (cav_count*avg_speed_CAV+rl_count*avg_speed_RL + npc_count*avg_speed_NPC)/(cav_count+rl_count+npc_count)
+
+		if cav_count+rl_count+npc_count > 0:
+			average_delay_All = (cav_count*avg_delay_CAV+rl_count*avg_delay_RL + npc_count*avg_delay_NPC)/(cav_count+rl_count+npc_count)
+			average_speed_All = (cav_count*avg_speed_CAV+rl_count*avg_speed_RL + npc_count*avg_speed_NPC)/(cav_count+rl_count+npc_count)
+			average_departDelay_ALL = (cav_count*avg_departDelay_CAV + rl_count*avg_departDelay_RL + npc_count*avg_departDelay_NPC)/(cav_count+rl_count+npc_count)
+		else:
+			average_delay_All = (cav_count*avg_delay_CAV+rl_count*avg_delay_RL + npc_count*avg_delay_NPC)
+			average_speed_All = (cav_count*avg_speed_CAV+rl_count*avg_speed_RL + npc_count*avg_speed_NPC)
+			average_departDelay_ALL = (cav_count*avg_departDelay_CAV + rl_count*avg_departDelay_RL + npc_count*avg_departDelay_NPC)
 
 		# print(avg_throughput)
-		headers = ['Average Waiting Time (All)','Average Speed (All)','Average Waiting Time (CAV)','Average Waiting Time (HDV & NPC)','Average Speed (CAV)','Average Speed (HDV & NPC)','Throughput','Average Lane Change Number (All)','Average Lane Change Number (HDV)','Collision Number','Episode_Step',"Seed"]
-		values = [average_delay_All,average_speed_All,avg_delay_CAV,total_avg_delay,avg_speed_CAV,total_Avg_speed,avg_throughput,self._average_LaneChange_number_all,self._average_LaneChange_number_rl,self._collisionCount/300,self._episodeStep,self._sumo_seed]
+		headers = ['Average Depart Delay (CAV)','Average Depart Delay (SAV & HDV)','Average Depart Delay (ALL)','Average Waiting Time (All)','Average Speed (All)','Average Waiting Time (CAV)','Average Waiting Time (SAV & NPC)','Average Speed (CAV)','Average Speed (SAV & NPC)','Throughput','Average Lane Change Number (All)','Average Lane Change Number (SAV)','Collision Number','Emergency Breaking','Episode_Step',"Seed"]
+		values = [avg_departDelay_CAV,total_avg_departDelay,average_departDelay_ALL,average_delay_All,average_speed_All,avg_delay_CAV,total_avg_delay,avg_speed_CAV,total_Avg_speed,avg_throughput,self._average_LaneChange_number_all,self._average_LaneChange_number_rl,self._collisionCount/300,self._emergencyBreaking/300,self._episodeStep,self._sumo_seed]
 		
 		self._currentTimeLoss_cav=0;self._avg_speed_cav=0;self._currentTimeLoss_rl=0;self._avg_speed_rl=0;self._currentTimeLoss_npc=0;self._avg_speed_npc=0
 		self._average_priorityLane_occupancy=0;self._average_throughput=0;self._average_PMx_emission=0;self._currentTimeLoss_Heuristic=0;self._avg_speed_heuristic=0;self._average_LaneChange_number_all=0;self._average_LaneChange_number_rl=0
-		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0;self._average_LaneChange_number=0;self._collisionCounter=0;self._collisionCount=0
-		self._avg_speed_npc=0;self._currentWaitingTime_npc=0;self._cavFlowCounter=0
+		self._currentWaitingTime_Heuristic=0;self._currentWaitingTime_rl=0;self._currentWaitingTime_npc=0;self._currentWaitingTime_cav=0;self._average_LaneChange_number=0;self._collisionCounter=0;self._collisionCount=0;self._emergencyBreaking=0
+		self._avg_speed_npc=0;self._currentWaitingTime_npc=0;self._cavFlowCounter=0;self._departDelay_cav=0;self._departDelay_rl=0;self._departDelay_npc=0
 		# print("resetting the waiting time")
 		return headers, values
 	
 	def make_action(self,actions):
 		# assumes actions are one-hot encoded
 		agent_actions = []
-		for i in range(0,self.n): 
+		# for i in range(0,self.n): 
+		for i in range(len(self.agents)): 
 			index = np.argmax(actions[i])
 			agent_actions.append(index)
 		return agent_actions
@@ -1992,7 +1969,7 @@ class SUMOEnv(Env):
 		self._collisionVehicleID.clear()
 		while self._sumo_step < self.action_steps:
 			# advance world state
-			# self.collectObservationPerStep()
+			self.collectObservationPerStep()
 			self.traci.simulationStep()
 			self._sumo_step +=1	
 			
@@ -2018,8 +1995,10 @@ class SUMOEnv(Env):
 			if veh in self._allVehLaneIDBefore:
 				if self._allVehLaneIDBefore[veh] != self.traci.vehicle.getLaneID(veh):
 					total_lane_change_all+=1
-
-		self._average_LaneChange_number_all+= total_lane_change_all/len(self._allVehLaneIDBefore)
+		if len(self._allVehLaneIDBefore) > 0:
+			self._average_LaneChange_number_all+= total_lane_change_all/len(self._allVehLaneIDBefore)
+		else:
+			self._average_LaneChange_number_all+= total_lane_change_all
 
 		for rl_agent in self._rl_vehicleID:			
 			vehedge = self.traci.vehicle.getRoadID(rl_agent)
@@ -2140,7 +2119,7 @@ class SUMOEnv(Env):
 				import traci
 		seed = self._sumo_seed
   
-		self.sumoCMD = ["-c", self.sumoConfig, "-r", self._routeFileName, "--waiting-time-memory",str(self.action_steps),"--scale",str(1), "-W"]
+		self.sumoCMD = ["-c", self.sumoConfig, "-r", self._routeFileName, "--waiting-time-memory",str(self.waiting_time_memory),"--scale",str(self.scaleFactor), "-W"]
 		# Define experiment-specific args here
 		if self._isTestFlag==True:
 			self.sumoCMD += ["--lanechange-output",f"laneChange_stats_{seed}.xml","--edgedata-output",f"edge_stats_{seed}.xml"] # for metric logging
@@ -2158,7 +2137,15 @@ class SUMOEnv(Env):
 		# sumoConfig = "sumo_configs/sim.sumocfg"
 # "--lanechange.duration",str(2),
 
+		print(' '.join([sumoBinary] + ["--seed", str(seed)] + self.sumoCMD))
 		traci.start([sumoBinary] + ["--seed", str(seed)] + self.sumoCMD)
+
+		self.lane2tls = {}
+		for tls_id in traci.trafficlight.getIDList():
+			for signal in traci.trafficlight.getControlledLinks(tls_id):
+				for inlane, outlane, _ in signal: # connections
+					self.lane2tls[inlane] = tls_id
+
 		return traci
 
 	def close(self):

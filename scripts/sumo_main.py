@@ -11,7 +11,8 @@ import traci
 import argparse
 import sumolib
 import xml.etree.ElementTree as ET
-
+from copy import deepcopy
+import subprocess
 
 # if 'SUMO_HOME' in os.environ:
 #     tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
@@ -137,20 +138,6 @@ def computeEdges(index, traci,allEdgeIds):
     combine_path = traci.vehicle.getRoute(veh_id)
     combine_path = list(combine_path)
     
-    # rand_origin = random.choice(releventEdgeId) #choose a random origin
-    # releventEdgeId.remove(rand_origin)   #temporarily remove from the list 
-    # rand_dest_list = []
-    # for j in range (80): #number of intermediate destinations to generate. Cannot be more than number of edges in a network
-    #     dest_i = random.choice(releventEdgeId)
-    #     rand_dest_list.append(dest_i) #choose a random destination
-    #     releventEdgeId.remove(dest_i)
-    # path_list = []
-    # for dest_inter in rand_dest_list:
-    #     path = traci.simulation.findRoute(str(rand_origin),str(dest_inter))
-    #     rand_origin = dest_inter
-    #     path_list.append(path)        
-    # #combine path
-    # combine_path = combinePath(path_list)
     return combine_path
 
 def createCAVRouteFiles(traci,networkFileName):
@@ -212,8 +199,8 @@ def createNPCRouteFiles(networkFileName):
     tree.write(routeFileName)
 
 def readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networkFileName):
-    routeFileName = "sumo_configs/Test/MSN_NewRouteFilesAfterNetEdit_routes.rou.xml"
-    newRouteFileName = "sumo_configs/Test/MSN_Grid_base_large.rou.xml"
+    routeFileName = "./sumo_configs/Test/Barcelona/Barcelona.rou.xml"
+    newRouteFileName = "./sumo_configs/Test/Barcelona/Barcelona_raw.rou.xml"
     routesList = []
     tree = ET.parse(routeFileName)
     root = tree.getroot()
@@ -283,18 +270,107 @@ def readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networ
         priorityType = "passenger-default"  
         list_length =  len(routesList)
         random_index = randrange(list_length)
-        edges = routesList[random_index]
+        edges = routesList[0]
         child.set('id',str(npc_id))
         child.set('type',str(priorityType))
         child.set('depart',"0.0")
         route = ET.SubElement(child, 'route')
         route.set('edges',str(edges))
-        routesList.remove(edges)
+        routesList.pop(0)
 
     tree = ET.ElementTree(root)
     ET.indent(tree, space="\t", level=0)
     tree.write(newRouteFileName)
 
+def readRouteFileAndCreateRoutesForMultipleVehicleType_OLD():
+    routeFileName = "./sumo_configs/Test/Barcelona/Barcelona_raw.rou.xml"
+    newRouteFileName = "./sumo_configs/Test/Barcelona/Barcelona.rou.xml"
+    routesList = []
+    tree = ET.parse(routeFileName)
+    root = tree.getroot()
+    
+    for route in root.iter('route'):
+        routesList.append(route.attrib['edges'])
+    rl_counter = 0
+    cav_counter = 0
+    npc_counter = 0
+    root_new = ET.Element('vehicles')
+    for veh in root.iter('vehicle'):
+    #randomly decide to assign vehicle type between CAV,RL,NPC
+        n=random.randint(0,2)
+        depart = veh.attrib['depart']
+        depart = str(float(depart) - 26100)
+        departPos = veh.attrib['departPos']
+        departSpeed = veh.attrib['departSpeed']
+        fromTaz = veh.attrib['fromTaz']
+        toTaz = veh.attrib['toTaz']
+        edges = routesList[0]
+        route.set('edges',str(edges))
+        routesList.pop(0)
+        
+        if n==0: #RL
+            child = ET.SubElement(root_new, 'vehicle')
+            rl_id = f"RL_" + str(rl_counter)
+            rl_counter+=1
+            priorityType = "rl-default" 
+            child.set('id',str(rl_id))
+            child.set('type',str(priorityType))            
+           
+        elif n==1: #CAV
+            child = ET.SubElement(root_new, 'vehicle')
+            cav_id = f"cav_" + str(cav_counter)
+            cav_counter+=1
+            priorityType = "cav-priority"
+            child.set('id',str(cav_id))
+            child.set('type',str(priorityType)) 
+
+        elif n==2: #NPC
+            child = ET.SubElement(root_new, 'vehicle')
+            npc_id = f"npc_" + str(npc_counter)
+            npc_counter+=1
+            priorityType = "passenger-default"
+            child.set('id',str(npc_id))
+            child.set('type',str(priorityType))   
+
+        child.set('depart',depart)
+        child.set('departPos',departPos)
+        child.set('departSpeed',departSpeed)
+        child.set('fromTaz',fromTaz)
+        child.set('toTaz',toTaz)
+        route = ET.SubElement(child, 'route')
+        route.set('edges',edges)
+
+    tree = ET.ElementTree(root_new)
+    ET.indent(tree, space="\t", level=0)
+    tree.write(newRouteFileName)
+
+def scaleRouteFile():
+    basefile = "./sumo_configs/Test/Barcelona/route_basefile.rou.xml"
+    routeFileName = "./sumo_configs/Test/Barcelona/Barcelona_raw.rou.xml"
+    newRouteFileName = "./sumo_configs/Test/Barcelona/Barcelona.rou.xml"
+    routesList = []
+    root = ET.parse(routeFileName).getroot()
+    
+    root_new = ET.parse(basefile).getroot()
+
+    veh_types = {'cav': 'cav-priority',
+                 'npc': 'passenger-default',
+                 'RL': 'rl-default'}
+    for i, veh in enumerate(root.iter('vehicle')):
+        for veh_type, priorityType in veh_types.items():
+            new_veh = deepcopy(veh)
+            depart = new_veh.attrib['depart']
+            depart = str(float(depart) - 26100)
+            new_veh.attrib['depart'] = depart
+            new_veh.set('id', f'{veh_type}_{i}')
+            new_veh.set('type', priorityType)
+            new_veh.attrib.pop('departSpeed', None)
+            new_veh.attrib.pop('departPos', None)
+            root_new.append(new_veh)
+
+    tree = ET.ElementTree(root_new)
+    ET.indent(tree, space="\t", level=0)
+    tree.write(newRouteFileName)
 
 def combinePath(path_list):
     combinePath = []
@@ -308,8 +384,6 @@ def combinePath(path_list):
         p.replace("'","")
         cleanString +=str(p) + " "
     return cleanString
-        
-       
 
 
 def init_simulator(seed,networkFileName,withGUI):        
@@ -340,65 +414,44 @@ def init_simulator(seed,networkFileName,withGUI):
     
 
 
-    # random.seed(seed)
-    # traci.start([sumoBinary] + sumoCMD)
-    # episodeLength = 3600
-    # stepCounter = 0
-    # warmUpPeriod = 300
-
+def basic_routing_adapt(INPUT_ROUTES_PATH, NEW_NET_FILE, OUTPUT_ROUTE_FILE, write_trips=False):
+    
+    # OLD_ROUTES_PATH = r"{}/{}".format(OLD_SCENARIO_FOLDER, OLD_ROUTES_FILE)
+    # NEW_NET_PATH = r"{}/{}".format(NEW_SCENARIO_FOLDER, NEW_NET_FILE)
+    OLD_ROUTES_PATH = r"{}".format(INPUT_ROUTES_PATH)
+    NEW_NET_PATH = r"{}".format(NEW_NET_FILE)
+    
+    duarouter = sumolib.checkBinary('duarouter')
+    base_command = f"{duarouter} --net-file {NEW_NET_PATH} --route-files {INPUT_ROUTES_PATH} --routing-algorithm astar --routing-threads {8} -W --ignore-errors --repair --repair.from --repair.to --weights.priority-factor 10"
+    if write_trips==False:
+        # NEW_ROUTES_PATH = r"{}/{}".format(NEW_SCENARIO_FOLDER, OLD_ROUTES_FILE)
+        NEW_ROUTES_PATH = r"{}".format(OUTPUT_ROUTE_FILE)
+        subprocess.run(f"{duarouter} --net-file {NEW_NET_PATH} --route-files {INPUT_ROUTES_PATH} --output-file {NEW_ROUTES_PATH} --routing-algorithm astar --routing-threads {8} -W --ignore-errors --repair --repair.from --repair.to --weights.priority-factor 10".format(NEW_NET_PATH, INPUT_ROUTES_PATH, NEW_ROUTES_PATH, 8))
+    else:
+        # NEW_ROUTES_PATH = r"{}/{}.trips.rou.xml".format(NEW_SCENARIO_FOLDER, OLD_ROUTES_FILE.split(".")[0])
+        NEW_ROUTES_PATH = r"{}.trips.rou.xml".format(OUTPUT_ROUTE_FILE.split(".")[0])
+        base_command += " --write-trips"
+    base_command += f" --output-file {NEW_ROUTES_PATH}"
+    subprocess.Popen(base_command, shell=True)
+    
+    return print("Routing FIXED/ADAPTED from \n{} \ndone in \n{} \nfor \n{}".format(OLD_ROUTES_PATH, NEW_ROUTES_PATH, NEW_NET_PATH))
 
     
-    # all_traffic = ['pedestrian','private', 'emergency', 'passenger','authority', 'army', 'vip', 'hov', 'taxi', 'bus', 'coach', 'delivery', 'truck', 'trailer', 'motorcycle', 'moped', 'evehicle', 'tram', 'rail_urban', 'rail', 'rail_electric', 'rail_fast', 'ship', 'custom1', 'custom2']
 
-    # # Access all npc vehicles and randomly change the priority access
-    
-    # releventEdgeId = []
-    # allEdgeIds = traci.edge.getIDList()
-    # for edge in allEdgeIds:
-    #     if edge.find("_") == -1:
-    #         releventEdgeId.append(edge)
-
-    # readRandomTripGeneratedRouteFileAndCreateRoutesForMultipleVehicleType(networkFileName)
-    # testCode(networkFileName)
-    # createNPCRouteFiles(networkFileName)
-    # print("Rohit")
-    # print(releventEdgeId)
-    # while stepCounter < episodeLength:
-    #     traci.simulationStep(stepCounter)
-    #     #### WARM UP PERIOD CODE HERE ####
-    #     # if stepCounter > 10:
-           
-    #         # allVehicleList = traci.vehicle.getIDList()
-    #         # npc_vehicleID,rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
-    #         # print(rl_vehicleID)
-    #         # for rl_veh in rl_vehicleID:
-    #         #     if traci.vehicle.getRouteIndex(str(rl_veh)) == (len(traci.vehicle.getRoute(str(rl_veh))) - 1): #Check to see if the car is at the end of its route
-    #         #         new_destiny = random.choice(releventEdgeId)
-    #         #         # print(str(i)+str(new_destiny))
-    #         #         traci.vehicle.changeTarget(str(rl_veh),str(new_destiny)) #Assign random destination
-
-    #     # if stepCounter < 300:
-    #         # print("Inside Warm-up Period")
-    #     #### ACTION STEP CODE HERE ####
-    #     if stepCounter%300 == 0 and stepCounter>=warmUpPeriod:
-    #         print("Inside Action Step")
-    #         print(len(traci.vehicle.getIDList()))
-    #         # npc_vehicleID,rl_vehicleID = utils.getSplitVehiclesList(allVehicleList)
-    #         # print("Total npc: " + str(len(npc_vehicleID)) + "Total RL agent: " + str(len(rl_vehicleID)))
-    #         # randomAssignmentOfPriority(npc_vehicleID,rl_vehicleID)
-
-    #         # print(getState(net))
-            
-    #     stepCounter +=1
-    # traci.close()
-
-   
 if __name__ == "__main__":   
     
     seed = 42
-    networkFileName = "sumo_configs/Test/MSN_Grid_rebuildTrafficLight.net.xml"
-    traci = init_simulator(seed,networkFileName,True)
+    # networkFileName = "sumo_configs/Test/MSN_Grid_rebuildTrafficLight.net.xml"
+    # traci = init_simulator(seed,networkFileName,True)
     
-    createCAVRouteFiles(traci,networkFileName)
+    # createCAVRouteFiles(traci,networkFileName)
+    scaleRouteFile()
+    print(os.getcwd())
+    oldRouteFileName = "./sumo_configs/Test/Barcelona/Barcelona.rou.xml"
+    newRouteFileName = "./sumo_configs/Test/Barcelona/Barcelona_scaled.rou.xml"
+    netFileName = "./sumo_configs/Test/Barcelona/Barcelona.net.xml"
+    basic_routing_adapt(oldRouteFileName, netFileName, newRouteFileName) # somehow does not work in python
+    # times = 3 #meaning 3 RL vehicle instead of 1 with different departTime
+    # scaleRouteFile(times)
 
    
