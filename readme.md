@@ -6,14 +6,13 @@ If you found any part of this repository useful for your work, please cite our p
 ```bibtex
 @article{dubery2024fairlane,
   title = {{FAIRLANE}: A multi-agent approach to priority lane management in diverse traffic composition},
-  volume = {},
+  volume = {171},
   DOI = {10.1016/j.trc.2024.104919},
   journal = {Transportation Research Part C: Emerging Technologies},
   publisher = {Elsevier BV},
   author = {Dubey,  Rohit K. and Dailisan,  Damian and Argota Sánchez–Vaquerizo,  Javier  and Helbing,  Dirk},
-  year = {2024},
-  month = nov,
-  pages = {}
+  year = {2025},
+  pages = {104919}
 }
 ```
 
